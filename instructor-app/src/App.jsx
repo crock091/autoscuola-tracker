@@ -67,18 +67,19 @@ function App() {
   const [pastSessionDetails, setPastSessionDetails] = useState(null);
   const [pastEvents, setPastEvents] = useState([]);
   const [gpsReady, setGpsReady] = useState(false);
+  const [gpsRequested, setGpsRequested] = useState(false);
   
-  // Richiedi permessi geolocalizzazione all'avvio
-  useEffect(() => {
-    console.log('🔍 Richiesta GPS...');
-    
+  // Funzione per richiedere GPS (serve user gesture su iOS)
+  const requestGPS = () => {
     if (!('geolocation' in navigator)) {
-      console.error('❌ GPS non supportato');
       alert('GPS non supportato dal browser');
+      setGpsReady(true);
       return;
     }
     
-    // Richiedi subito la posizione in background
+    setGpsRequested(true);
+    console.log('🔍 Richiesta GPS...');
+    
     navigator.geolocation.getCurrentPosition(
       (position) => {
         console.log('✅ GPS ricevuto:', position.coords.latitude, position.coords.longitude);
@@ -88,10 +89,12 @@ function App() {
       },
       (error) => {
         console.error('❌ Errore GPS:', error.code, error.message);
-        setGpsReady(true); // Usa posizione default
-        if (error.code === 1) {
-          alert('Permesso GPS negato. Vai in Impostazioni > Safari > Posizione e consenti.');
-        }
+        setGpsReady(true);
+        let msg = 'Errore GPS';
+        if (error.code === 1) msg = 'Permesso GPS negato.\n\nVai in:\nImpostazioni iPhone > Safari > Posizione\ne imposta su "Chiedi" o "Consenti"';
+        if (error.code === 2) msg = 'Posizione non disponibile. Controlla la connessione.';
+        if (error.code === 3) msg = 'Timeout GPS. Assicurati di essere all\'aperto.';
+        alert(msg);
       },
       { 
         enableHighAccuracy: true,
@@ -99,6 +102,11 @@ function App() {
         maximumAge: 0
       }
     );
+  };
+  
+  // Richiedi GPS all'avvio (funziona su Android, su iOS serve user gesture)
+  useEffect(() => {
+    requestGPS();
   }, []);
   
   // Avvia tracking GPS
@@ -384,18 +392,43 @@ function App() {
             {!gpsReady && (
               <div style={{
                 position: 'absolute',
-                top: '10px',
+                top: '50%',
                 left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'rgba(37, 99, 235, 0.95)',
-                color: 'white',
-                padding: '10px 20px',
-                borderRadius: '8px',
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(255, 255, 255, 0.98)',
+                color: '#1f2937',
+                padding: '30px',
+                borderRadius: '16px',
                 zIndex: 1000,
-                fontSize: '0.9rem',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                textAlign: 'center',
+                maxWidth: '90%'
               }}>
-                📍 Rilevamento posizione GPS...
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                  {gpsRequested ? 'Rilevamento GPS...' : 'Attiva GPS'}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '1.5rem' }}>
+                  {gpsRequested ? 'Attendi qualche secondo' : 'Tocca il pulsante per attivare la posizione'}
+                </div>
+                {!gpsRequested && (
+                  <button 
+                    onClick={requestGPS}
+                    style={{
+                      padding: '12px 32px',
+                      background: '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                    }}
+                  >
+                    Attiva GPS
+                  </button>
+                )}
               </div>
             )}
           </div>
