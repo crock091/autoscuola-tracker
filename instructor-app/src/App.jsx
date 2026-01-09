@@ -646,38 +646,65 @@ function App() {
             height: 'calc(100vh - 150px)',
             position: 'relative'
           }}>
-            {/* Mappa */}
-            <div style={{ flex: 1, position: 'relative' }}>
+            {/* Mappa e pannello eventi mobile */}
+            <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
               {selectedPastSession && pastSessionDetails ? (
-                <MapContainer 
-                  center={pastSessionDetails.gps_points[0] ? [pastSessionDetails.gps_points[0].lat, pastSessionDetails.gps_points[0].lon] : [45.4642, 9.1900]}
-                  zoom={15} 
-                  style={{ height: '100%', width: '100%' }}>
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; OpenStreetMap contributors'
-                  />
-                  {pastSessionDetails.gps_points.length > 0 && (
-                    <Polyline 
-                      positions={pastSessionDetails.gps_points.map(p => [p.lat, p.lon])}
-                      color="blue"
-                      weight={4}
-                    />
+                <>
+                  <div className="map-wrapper">
+                    <MapContainer 
+                      center={pastSessionDetails.gps_points[0] ? [pastSessionDetails.gps_points[0].lat, pastSessionDetails.gps_points[0].lon] : [45.4642, 9.1900]}
+                      zoom={15} 
+                      style={{ height: '100%', width: '100%' }}>
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; OpenStreetMap contributors'
+                      />
+                      {pastSessionDetails.gps_points.length > 0 && (
+                        <Polyline 
+                          positions={pastSessionDetails.gps_points.map(p => [p.lat, p.lon])}
+                          color="blue"
+                          weight={4}
+                        />
+                      )}
+                      {pastEvents.map((event, idx) => (
+                        <Marker 
+                          key={idx} 
+                          position={[event.lat, event.lon]}
+                          icon={event.tipo === 'manovra_corretta' ? successIcon : errorIcon}
+                        >
+                          <Popup>
+                            <strong>{event.tipo}</strong><br/>
+                            {event.descrizione}<br/>
+                            {new Date(event.timestamp).toLocaleString()}
+                          </Popup>
+                        </Marker>
+                      ))}
+                    </MapContainer>
+                  </div>
+                  
+                  {/* Pannello eventi mobile */}
+                  {pastEvents.length > 0 && (
+                    <div className="events-panel">
+                      <h3>Eventi registrati ({pastEvents.length})</h3>
+                      <div className="events-list">
+                        {pastEvents.map((event, idx) => (
+                          <div 
+                            key={idx}
+                            className={`event-item ${event.tipo === 'manovra_corretta' ? 'success' : 'error'}`}
+                          >
+                            <div className="event-icon">
+                              {event.tipo === 'manovra_corretta' ? '✓' : '❌'}
+                            </div>
+                            <div className="event-content">
+                              <div className="event-title">{event.tipo.replace(/_/g, ' ').toUpperCase()}</div>
+                              <div className="event-time">{new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleTimeString('it-IT')}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  {pastEvents.map((event, idx) => (
-                    <Marker 
-                      key={idx} 
-                      position={[event.lat, event.lon]}
-                      icon={event.tipo === 'manovra_corretta' ? successIcon : errorIcon}
-                    >
-                      <Popup>
-                        <strong>{event.tipo}</strong><br/>
-                        {event.descrizione}<br/>
-                        {new Date(event.timestamp).toLocaleString()}
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
+                </>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                   <p>Seleziona una guida per vedere il percorso</p>

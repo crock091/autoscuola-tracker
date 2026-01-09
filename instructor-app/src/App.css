@@ -371,9 +371,21 @@
     width: 85%;
   }
   
-  /* Nascondi lista eventi su mobile */
+  /* Nascondi lista eventi desktop su mobile */
   .history-sidebar ~ div > div:last-child {
     display: none !important;
+  }
+  
+  /* Pannello eventi mobile visibile */
+  .events-panel {
+    display: block !important;
+    max-height: 180px;
+  }
+  
+  /* Mappa più piccola per lasciare spazio agli eventi */
+  .map-wrapper {
+    flex: 1;
+    min-height: 300px;
   }
 }
 
@@ -387,4 +399,82 @@
 
 .history-overlay.visible {
   display: block;
+}
+
+/* Map wrapper */
+.map-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+/* Events panel */
+.events-panel {
+  display: none;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  padding: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.events-panel h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: #1f2937;
+  margin-top: 0;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.event-item.error {
+  background: #fee2e2;
+  border-left: 4px solid #dc2626;
+}
+
+.event-item.success {
+  background: #d1fae5;
+  border-left: 4px solid #10b981;
+}
+
+.event-item:hover {
+  transform: translateX(4px);
+}
+
+.event-icon {
+  font-size: 1.5rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.event-content {
+  flex: 1;
+}
+
+.event-title {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.9rem;
+}
+
+.event-time {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
 }
