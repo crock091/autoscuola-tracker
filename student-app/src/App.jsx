@@ -47,6 +47,7 @@ function App() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(true); // Sidebar visibile all'avvio
+  const [selectedEventLocation, setSelectedEventLocation] = useState(null);
   
   // Carica sessioni all'avvio
   useEffect(() => {
@@ -299,6 +300,7 @@ function App() {
                 zoom={14}
                 style={{ height: '100%', width: '100%' }}
               >
+                <MapController center={selectedEventLocation} zoom={17} />
                 <TileLayer
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -362,6 +364,8 @@ function App() {
                     <div 
                       key={event.id} 
                       className={`event-item ${event.tipo === 'manovra_corretta' ? 'success' : 'error'}`}
+                      onClick={() => setSelectedEventLocation([event.lat, event.lon])}
+                      style={{ cursor: 'pointer' }}
                     >
                       <div className="event-icon">
                         {event.tipo === 'manovra_corretta' ? '✓' : '❌'}

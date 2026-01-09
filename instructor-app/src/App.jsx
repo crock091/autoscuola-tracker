@@ -70,6 +70,7 @@ function App() {
   const [gpsRequested, setGpsRequested] = useState(false);
   const [gpsError, setGpsError] = useState(null);
   const [historySidebarOpen, setHistorySidebarOpen] = useState(true); // Sidebar history sempre visibile all'inizio
+  const [selectedEventLocation, setSelectedEventLocation] = useState(null);
   
   // Funzione per richiedere GPS (serve user gesture su iOS)
   const requestGPS = () => {
@@ -655,6 +656,7 @@ function App() {
                       center={pastSessionDetails.gps_points[0] ? [pastSessionDetails.gps_points[0].lat, pastSessionDetails.gps_points[0].lon] : [45.4642, 9.1900]}
                       zoom={15} 
                       style={{ height: '100%', width: '100%' }}>
+                      <MapController center={selectedEventLocation} zoom={17} />
                       <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         attribution='&copy; OpenStreetMap contributors'
@@ -691,6 +693,8 @@ function App() {
                           <div 
                             key={idx}
                             className={`event-item ${event.tipo === 'manovra_corretta' ? 'success' : 'error'}`}
+                            onClick={() => setSelectedEventLocation([event.lat, event.lon])}
+                            style={{ cursor: 'pointer' }}
                           >
                             <div className="event-icon">
                               {event.tipo === 'manovra_corretta' ? '✓' : '❌'}
@@ -727,12 +731,14 @@ function App() {
                 {pastEvents.map((event, idx) => (
                   <div 
                     key={idx}
+                    onClick={() => setSelectedEventLocation([event.lat, event.lon])}
                     style={{
                       padding: '12px',
                       marginBottom: '10px',
                       backgroundColor: event.tipo === 'manovra_corretta' ? '#e8f5e9' : '#ffebee',
                       border: `2px solid ${event.tipo === 'manovra_corretta' ? '#4caf50' : '#f44336'}`,
-                      borderRadius: '8px'
+                      borderRadius: '8px',
+                      cursor: 'pointer'
                     }}>
                     <div style={{ 
                       fontWeight: 'bold', 
