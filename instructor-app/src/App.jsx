@@ -68,16 +68,17 @@ function App() {
   const [pastEvents, setPastEvents] = useState([]);
   const [gpsReady, setGpsReady] = useState(false);
   const [gpsRequested, setGpsRequested] = useState(false);
+  const [gpsError, setGpsError] = useState(null);
   
   // Funzione per richiedere GPS (serve user gesture su iOS)
   const requestGPS = () => {
     if (!('geolocation' in navigator)) {
-      alert('GPS non supportato dal browser');
-      setGpsReady(true);
+      setGpsError('GPS non supportato dal browser');
       return;
     }
     
     setGpsRequested(true);
+    setGpsError(null);
     console.log('🔍 Richiesta GPS...');
     
     navigator.geolocation.getCurrentPosition(
@@ -86,15 +87,16 @@ function App() {
         const pos = [position.coords.latitude, position.coords.longitude];
         setCurrentPosition(pos);
         setGpsReady(true);
+        setGpsError(null);
       },
       (error) => {
         console.error('❌ Errore GPS:', error.code, error.message);
-        setGpsReady(true);
+        setGpsRequested(false);
         let msg = 'Errore GPS';
-        if (error.code === 1) msg = 'Permesso GPS negato.\n\nVai in:\nImpostazioni iPhone > Safari > Posizione\ne imposta su "Chiedi" o "Consenti"';
-        if (error.code === 2) msg = 'Posizione non disponibile. Controlla la connessione.';
-        if (error.code === 3) msg = 'Timeout GPS. Assicurati di essere all\'aperto.';
-        alert(msg);
+        if (error.code === 1) msg = 'Permesso GPS negato.\n\nVai in:\nImpostazioni > Safari > Posizione\ne attiva "Chiedi" o "Consenti"';
+        if (error.code === 2) msg = 'Posizione non disponibile.';
+        if (error.code === 3) msg = 'Timeout GPS. Sei all\'aperto?';
+        setGpsError(msg);
       },
       { 
         enableHighAccuracy: true,
@@ -404,29 +406,31 @@ function App() {
                 textAlign: 'center',
                 maxWidth: '90%'
               }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                  {gpsRequested ? 'Rilevamento GPS...' : 'Attiva GPS'}
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                  {gpsError ? '⚠️' : '📍'}
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '1.5rem' }}>
-                  {gpsRequested ? 'Attendi qualche secondo' : 'Tocca il pulsante per attivare la posizione'}
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                  {gpsError ? 'Errore GPS' : gpsRequested ? 'Rilevamento GPS...' : 'Attiva GPS'}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#6b7280', marginBottom: '1.5rem', whiteSpace: 'pre-line' }}>
+                  {gpsError || (gpsRequested ? 'Attendi qualche secondo' : 'Tocca il pulsante per attivare la posizione')}
                 </div>
                 {!gpsRequested && (
                   <button 
                     onClick={requestGPS}
                     style={{
                       padding: '12px 32px',
-                      background: '#2563eb',
+                      background: gpsError ? '#dc2626' : '#2563eb',
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
                       fontSize: '1rem',
                       fontWeight: 'bold',
                       cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                      boxShadow: gpsError ? '0 4px 12px rgba(220, 38, 38, 0.3)' : '0 4px 12px rgba(37, 99, 235, 0.3)'
                     }}
                   >
-                    Attiva GPS
+                    {gpsError ? 'Riprova' : 'Attiva GPS'}
                   </button>
                 )}
               </div>
