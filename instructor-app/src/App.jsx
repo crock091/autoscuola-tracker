@@ -194,7 +194,7 @@ function App() {
       if (!response.ok) {
         throw new Error(`Errore HTTP: ${response.status}`);
       }
-      new Date().toISOString
+      
       const data = await response.json();
       console.log('Sessione creata:', data);
       const newSessionId = data[0].id;
@@ -225,7 +225,7 @@ function App() {
       setSessionActive(false);
       setSessionId(null);
       sessionIdRef.current = null;
-      alert('Sesnew Date().toISOString successo');
+      alert('✅ Sessione terminata con successo');
     } catch (error) {
       console.error('Errore fine sessione:', error);
     }
@@ -281,6 +281,48 @@ function App() {
       setPastSessions(data);
     } catch (error) {
       console.error('Errore caricamento guide passate:', error);
+    }
+  };
+
+  // Cancella sessione
+  const deleteSession = async (sessionId) => {
+    if (!confirm('Sei sicuro di voler cancellare questa guida? L\'operazione non può essere annullata.')) {
+      return;
+    }
+    
+    try {
+      // Prima cancella GPS points (CASCADE dovrebbe farlo automaticamente ma per sicurezza)
+      await fetch(`${API_URL}/gps_points?session_id=eq.${sessionId}`, {
+        method: 'DELETE',
+        headers: supabaseHeaders
+      });
+      
+      // Cancella eventi
+      await fetch(`${API_URL}/events?session_id=eq.${sessionId}`, {
+        method: 'DELETE',
+        headers: supabaseHeaders
+      });
+      
+      // Cancella sessione
+      const response = await fetch(`${API_URL}/sessions?id=eq.${sessionId}`, {
+        method: 'DELETE',
+        headers: supabaseHeaders
+      });
+      
+      if (response.ok) {
+        alert('✅ Guida cancellata');
+        if (selectedPastSession === sessionId) {
+          setSelectedPastSession(null);
+          setPastSessionDetails(null);
+          setPastEvents([]);
+        }
+        loadPastSessions();
+      } else {
+        throw new Error('Errore nella cancellazione');
+      }
+    } catch (error) {
+      console.error('Errore cancellazione:', error);
+      alert('❌ Errore durante la cancellazione');
     }
   };
 
@@ -532,22 +574,48 @@ function App() {
             {pastSessions.map(session => (
               <div 
                 key={session.id}
-                onClick={() => setSelectedPastSession(session.id)}
                 style={{
                   padding: '10px',
                   marginBottom: '10px',
                   backgroundColor: selectedPastSession === session.id ? '#e3f2fd' : 'white',
                   border: '1px solid #ddd',
                   borderRadius: '8px',
-                  cursor: 'pointer'
+                  position: 'relative'
                 }}>
-                <div><strong>{new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleDateString('it-IT')}</strong></div>
-                <div style={{fontSize: '0.85em', color: '#666'}}>
-                  {new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleTimeString('it-IT')} - {session.fine ? new Date(new Date(session.fine).getTime() + 60*60*1000).toLocaleTimeString('it-IT') : 'In corso'}
+                <div 
+                  onClick={() => setSelectedPastSession(session.id)}
+                  style={{ cursor: 'pointer' }}>
+                  <div><strong>{new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleDateString('it-IT')}</strong></div>
+                  <div style={{fontSize: '0.85em', color: '#666'}}>
+                    {new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleTimeString('it-IT')} - {session.fine ? new Date(new Date(session.fine).getTime() + 60*60*1000).toLocaleTimeString('it-IT') : 'In corso'}
+                  </div>
+                  <div style={{fontSize: '0.85em', color: '#666'}}>
+                    Allievo ID: {session.allievo_id}
+                  </div>
                 </div>
-                <div style={{fontSize: '0.85em', color: '#666'}}>
-                  Allievo ID: {session.allievo_id}
-                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteSession(session.id);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '8px',
+                    background: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }}
+                  title="Cancella guida"
+                >
+                  🗑️
+                </button>
               </div>
             ))}
           </div>
