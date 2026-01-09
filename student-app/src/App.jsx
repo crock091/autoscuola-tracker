@@ -210,13 +210,6 @@ function App() {
       <div className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <h1>📚 Le Mie Guide</h1>
-          <button 
-            className="btn-close"
-            onClick={() => setMenuOpen(false)}
-            aria-label="Chiudi menu"
-          >
-            ×
-          </button>
         </div>
         
         <div className="sessions-list">
