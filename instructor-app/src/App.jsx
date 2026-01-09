@@ -69,6 +69,7 @@ function App() {
   const [gpsReady, setGpsReady] = useState(false);
   const [gpsRequested, setGpsRequested] = useState(false);
   const [gpsError, setGpsError] = useState(null);
+  const [historySidebarOpen, setHistorySidebarOpen] = useState(true); // Sidebar history sempre visibile all'inizio
   
   // Funzione per richiedere GPS (serve user gesture su iOS)
   const requestGPS = () => {
@@ -568,56 +569,97 @@ function App() {
       )}
         </>
       ) : (
-        <div style={{ padding: '20px', display: 'flex', height: 'calc(100vh - 150px)', gap: '10px' }}>
-          <div style={{ width: '250px', borderRight: '1px solid #ddd', overflowY: 'auto', paddingRight: '10px', flexShrink: 0 }}>
-            <h3>Guide Passate</h3>
-            {pastSessions.map(session => (
-              <div 
-                key={session.id}
-                style={{
-                  padding: '10px',
-                  marginBottom: '10px',
-                  backgroundColor: selectedPastSession === session.id ? '#e3f2fd' : 'white',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  position: 'relative'
-                }}>
-                <div 
-                  onClick={() => setSelectedPastSession(session.id)}
-                  style={{ cursor: 'pointer' }}>
-                  <div><strong>{new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleDateString('it-IT')}</strong></div>
-                  <div style={{fontSize: '0.85em', color: '#666'}}>
-                    {new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleTimeString('it-IT')} - {session.fine ? new Date(new Date(session.fine).getTime() + 60*60*1000).toLocaleTimeString('it-IT') : 'In corso'}
+        <div style={{ padding: '20px', display: 'flex', height: 'calc(100vh - 150px)', gap: '10px', position: 'relative' }}>
+          {/* Hamburger per sidebar history (mobile) */}
+          {selectedPastSession && !historySidebarOpen && (
+            <button 
+              onClick={() => setHistorySidebarOpen(true)}
+              style={{
+                position: 'fixed',
+                top: '80px',
+                left: '10px',
+                zIndex: 1000,
+                background: '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '48px',
+                height: '48px',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+              ☰
+            </button>
+          )}
+          
+          <div style={{ 
+            width: historySidebarOpen ? '250px' : '0', 
+            borderRight: historySidebarOpen ? '1px solid #ddd' : 'none',
+            overflowY: 'auto', 
+            paddingRight: historySidebarOpen ? '10px' : '0',
+            flexShrink: 0,
+            transition: 'width 0.3s, padding 0.3s',
+            overflow: historySidebarOpen ? 'auto' : 'hidden'
+          }}>
+            {historySidebarOpen && (
+              <>
+                <h3>Guide Passate</h3>
+                {pastSessions.map(session => (
+                  <div 
+                    key={session.id}
+                    style={{
+                      padding: '10px',
+                      marginBottom: '10px',
+                      backgroundColor: selectedPastSession === session.id ? '#e3f2fd' : 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      position: 'relative'
+                    }}>
+                    <div 
+                      onClick={() => {
+                        setSelectedPastSession(session.id);
+                        setHistorySidebarOpen(false); // Nascondi per vedere mappa
+                      }}
+                      style={{ cursor: 'pointer' }}>
+                      <div><strong>{new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleDateString('it-IT')}</strong></div>
+                      <div style={{fontSize: '0.85em', color: '#666'}}>
+                        {new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleTimeString('it-IT')} - {session.fine ? new Date(new Date(session.fine).getTime() + 60*60*1000).toLocaleTimeString('it-IT') : 'In corso'}
+                      </div>
+                      <div style={{fontSize: '0.85em', color: '#666'}}>
+                        Allievo ID: {session.allievo_id}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteSession(session.id);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        background: '#ef4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                      }}
+                      title="Cancella guida"
+                    >
+                      🗑️
+                    </button>
                   </div>
-                  <div style={{fontSize: '0.85em', color: '#666'}}>
-                    Allievo ID: {session.allievo_id}
-                  </div>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteSession(session.id);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    background: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '6px 10px',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                  }}
-                  title="Cancella guida"
-                >
-                  🗑️
-                </button>
-              </div>
-            ))}
+                ))}
+              </>
+            )}
           </div>
           
           <div style={{ flex: 1, position: 'relative' }}>

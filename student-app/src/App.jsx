@@ -46,7 +46,7 @@ function App() {
   const [sessionDetails, setSessionDetails] = useState(null);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(true); // Sidebar visibile all'avvio
   
   // Carica sessioni all'avvio
   useEffect(() => {
@@ -192,14 +192,16 @@ function App() {
   
   return (
     <div className="app">
-      {/* Menu toggle per mobile */}
-      <button 
-        className="menu-toggle" 
-        onClick={() => setMenuOpen(true)}
-        aria-label="Apri menu"
-      >
-        ☰
-      </button>
+      {/* Menu toggle visibile solo dopo aver selezionato una guida */}
+      {selectedSession && !menuOpen && (
+        <button 
+          className="menu-toggle" 
+          onClick={() => setMenuOpen(true)}
+          aria-label="Apri menu"
+        >
+          ☰
+        </button>
+      )}
 
       {/* Overlay per chiudere menu su mobile */}
       <div 
@@ -226,7 +228,7 @@ function App() {
               >
                 <div onClick={() => { 
                   setSelectedSession(session.id);
-                  setMenuOpen(false); // Chiudi menu su mobile quando si seleziona
+                  setMenuOpen(false); // Nascondi sidebar per vedere mappa
                 }} style={{ flex: 1, cursor: 'pointer' }}>
                   <div className="session-date">
                     {formatDate(session.inizio)}
