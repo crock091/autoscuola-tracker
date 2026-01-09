@@ -318,3 +318,73 @@
     height: 300px;
   }
 }
+
+/* History view sidebar styles (come student-app) */
+.history-sidebar {
+  width: 100%;
+  background: white;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  transition: width 0.3s, padding 0.3s;
+}
+
+.history-sidebar.collapsed {
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.history-toggle {
+  position: fixed;
+  top: 80px;
+  left: 10px;
+  z-index: 1000;
+  background: #2563eb;
+  color: white;
+  border: none;
+  borderRadius: 50%;
+  width: 48px;
+  height: 48px;
+  fontSize: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .history-sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    bottom: 0;
+    width: 85%;
+    max-width: 320px;
+    z-index: 1500;
+    transition: left 0.3s ease;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+  }
+
+  .history-sidebar.open {
+    left: 0;
+    width: 85%;
+  }
+  
+  /* Nascondi lista eventi su mobile */
+  .history-sidebar ~ div > div:last-child {
+    display: none !important;
+  }
+}
+
+.history-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1400;
+}
+
+.history-overlay.visible {
+  display: block;
+}

@@ -569,175 +569,163 @@ function App() {
       )}
         </>
       ) : (
-        <div style={{ padding: '20px', display: 'flex', height: 'calc(100vh - 150px)', gap: '10px', position: 'relative' }}>
-          {/* Hamburger per sidebar history (mobile) */}
+        <>
+          {/* Overlay per chiudere sidebar su mobile */}
+          <div 
+            className={`history-overlay ${historySidebarOpen ? 'visible' : ''}`}
+            onClick={() => setHistorySidebarOpen(false)}
+          />
+          
+          {/* Hamburger menu (visibile solo quando session selezionata e sidebar chiusa) */}
           {selectedPastSession && !historySidebarOpen && (
             <button 
-              onClick={() => setHistorySidebarOpen(true)}
-              style={{
-                position: 'fixed',
-                top: '80px',
-                left: '10px',
-                zIndex: 1000,
-                background: '#2563eb',
-                color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                width: '48px',
-                height: '48px',
-                fontSize: '1.5rem',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
+              className="history-toggle"
+              onClick={() => setHistorySidebarOpen(true)}>
               ☰
             </button>
           )}
           
-          <div style={{ 
-            width: historySidebarOpen ? '250px' : '0', 
-            borderRight: historySidebarOpen ? '1px solid #ddd' : 'none',
-            overflowY: 'auto', 
-            paddingRight: historySidebarOpen ? '10px' : '0',
-            flexShrink: 0,
-            transition: 'width 0.3s, padding 0.3s',
-            overflow: historySidebarOpen ? 'auto' : 'hidden'
-          }}>
-            {historySidebarOpen && (
-              <>
-                <h3>Guide Passate</h3>
-                {pastSessions.map(session => (
-                  <div 
-                    key={session.id}
-                    style={{
-                      padding: '10px',
-                      marginBottom: '10px',
-                      backgroundColor: selectedPastSession === session.id ? '#e3f2fd' : 'white',
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      position: 'relative'
-                    }}>
-                    <div 
-                      onClick={() => {
-                        setSelectedPastSession(session.id);
-                        setHistorySidebarOpen(false); // Nascondi per vedere mappa
-                      }}
-                      style={{ cursor: 'pointer' }}>
-                      <div><strong>{new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleDateString('it-IT')}</strong></div>
-                      <div style={{fontSize: '0.85em', color: '#666'}}>
-                        {new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleTimeString('it-IT')} - {session.fine ? new Date(new Date(session.fine).getTime() + 60*60*1000).toLocaleTimeString('it-IT') : 'In corso'}
-                      </div>
-                      <div style={{fontSize: '0.85em', color: '#666'}}>
-                        Allievo ID: {session.allievo_id}
-                      </div>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteSession(session.id);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        background: '#ef4444',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '6px 10px',
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                      }}
-                      title="Cancella guida"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-          
-          <div style={{ flex: 1, position: 'relative' }}>
-            {selectedPastSession && pastSessionDetails ? (
-              <MapContainer 
-                center={pastSessionDetails.gps_points[0] ? [pastSessionDetails.gps_points[0].lat, pastSessionDetails.gps_points[0].lon] : [45.4642, 9.1900]}
-                zoom={15} 
-                style={{ height: '100%', width: '100%' }}>
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; OpenStreetMap contributors'
-                />
-                {pastSessionDetails.gps_points.length > 0 && (
-                  <Polyline 
-                    positions={pastSessionDetails.gps_points.map(p => [p.lat, p.lon])}
-                    color="blue"
-                    weight={4}
-                  />
-                )}
-                {pastEvents.map((event, idx) => (
-                  <Marker 
-                    key={idx} 
-                    position={[event.lat, event.lon]}
-                    icon={event.tipo === 'manovra_corretta' ? successIcon : errorIcon}
-                  >
-                    <Popup>
-                      <strong>{event.tipo}</strong><br/>
-                      {event.descrizione}<br/>
-                      {new Date(event.timestamp).toLocaleString()}
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                <p>Seleziona una guida per vedere il percorso</p>
-              </div>
-            )}
-          </div>
-
-          {selectedPastSession && pastEvents.length > 0 && (
-            <div style={{ 
-              width: '300px', 
-              borderLeft: '1px solid #ddd', 
-              paddingLeft: '15px', 
-              overflowY: 'auto',
-              flexShrink: 0,
-              backgroundColor: '#f9f9f9'
-            }}>
-              <h3 style={{ marginTop: 0 }}>Eventi Segnalati ({pastEvents.length})</h3>
-              {pastEvents.map((event, idx) => (
+          {/* Sidebar con guide passate */}
+          <div className={`history-sidebar ${historySidebarOpen ? 'open' : ''}`}>
+            <div style={{ padding: '20px' }}>
+              <h3 style={{ marginTop: 0 }}>Guide Passate</h3>
+              {pastSessions.map(session => (
                 <div 
-                  key={idx}
+                  key={session.id}
+                  onClick={() => {
+                    setSelectedPastSession(session.id);
+                    setHistorySidebarOpen(false);
+                  }}
                   style={{
-                    padding: '12px',
+                    padding: '15px',
                     marginBottom: '10px',
-                    backgroundColor: event.tipo === 'manovra_corretta' ? '#e8f5e9' : '#ffebee',
-                    border: `2px solid ${event.tipo === 'manovra_corretta' ? '#4caf50' : '#f44336'}`,
-                    borderRadius: '8px'
+                    backgroundColor: selectedPastSession === session.id ? '#e3f2fd' : 'white',
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    position: 'relative'
                   }}>
-                  <div style={{ 
-                    fontWeight: 'bold', 
-                    marginBottom: '5px',
-                    color: event.tipo === 'manovra_corretta' ? '#2e7d32' : '#c62828'
-                  }}>
-                    {event.tipo === 'manovra_corretta' ? '✅' : '⚠️'} {event.tipo.replace(/_/g, ' ').toUpperCase()}
+                  <div><strong>{new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleDateString('it-IT')}</strong></div>
+                  <div style={{fontSize: '0.85em', color: '#666'}}>
+                    {new Date(new Date(session.inizio).getTime() + 60*60*1000).toLocaleTimeString('it-IT')} - {session.fine ? new Date(new Date(session.fine).getTime() + 60*60*1000).toLocaleTimeString('it-IT') : 'In corso'}
                   </div>
-                  <div style={{ fontSize: '0.9em', marginBottom: '5px' }}>
-                    {event.descrizione}
+                  <div style={{fontSize: '0.85em', color: '#666'}}>
+                    Allievo ID: {session.allievo_id}
                   </div>
-                  <div style={{ fontSize: '0.8em', color: '#666' }}>
-                    {new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleTimeString('it-IT')}
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSession(session.id);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 10px',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    }}
+                    title="Cancella guida"
+                  >
+                    🗑️
+                  </button>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+          
+          {/* Contenuto principale: mappa e lista eventi */}
+          <div style={{ 
+            display: 'flex',
+            height: 'calc(100vh - 150px)',
+            position: 'relative'
+          }}>
+            {/* Mappa */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              {selectedPastSession && pastSessionDetails ? (
+                <MapContainer 
+                  center={pastSessionDetails.gps_points[0] ? [pastSessionDetails.gps_points[0].lat, pastSessionDetails.gps_points[0].lon] : [45.4642, 9.1900]}
+                  zoom={15} 
+                  style={{ height: '100%', width: '100%' }}>
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; OpenStreetMap contributors'
+                  />
+                  {pastSessionDetails.gps_points.length > 0 && (
+                    <Polyline 
+                      positions={pastSessionDetails.gps_points.map(p => [p.lat, p.lon])}
+                      color="blue"
+                      weight={4}
+                    />
+                  )}
+                  {pastEvents.map((event, idx) => (
+                    <Marker 
+                      key={idx} 
+                      position={[event.lat, event.lon]}
+                      icon={event.tipo === 'manovra_corretta' ? successIcon : errorIcon}
+                    >
+                      <Popup>
+                        <strong>{event.tipo}</strong><br/>
+                        {event.descrizione}<br/>
+                        {new Date(event.timestamp).toLocaleString()}
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <p>Seleziona una guida per vedere il percorso</p>
+                </div>
+              )}
+            </div>
+
+            {/* Lista eventi (desktop only) */}
+            {selectedPastSession && pastEvents.length > 0 && (
+              <div style={{ 
+                width: '300px', 
+                borderLeft: '1px solid #ddd', 
+                paddingLeft: '15px', 
+                paddingRight: '15px',
+                overflowY: 'auto',
+                flexShrink: 0,
+                backgroundColor: '#f9f9f9'
+              }}>
+                <h3 style={{ marginTop: '15px' }}>Eventi Segnalati ({pastEvents.length})</h3>
+                {pastEvents.map((event, idx) => (
+                  <div 
+                    key={idx}
+                    style={{
+                      padding: '12px',
+                      marginBottom: '10px',
+                      backgroundColor: event.tipo === 'manovra_corretta' ? '#e8f5e9' : '#ffebee',
+                      border: `2px solid ${event.tipo === 'manovra_corretta' ? '#4caf50' : '#f44336'}`,
+                      borderRadius: '8px'
+                    }}>
+                    <div style={{ 
+                      fontWeight: 'bold', 
+                      marginBottom: '5px',
+                      color: event.tipo === 'manovra_corretta' ? '#2e7d32' : '#c62828'
+                    }}>
+                      {event.tipo === 'manovra_corretta' ? '✅' : '⚠️'} {event.tipo.replace(/_/g, ' ').toUpperCase()}
+                    </div>
+                    <div style={{ fontSize: '0.9em', marginBottom: '5px' }}>
+                      {event.descrizione}
+                    </div>
+                    <div style={{ fontSize: '0.8em', color: '#666' }}>
+                      {new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleTimeString('it-IT')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
