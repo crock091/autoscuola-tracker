@@ -71,35 +71,49 @@ function App() {
   
   // Richiedi permessi geolocalizzazione all'avvio
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      setGpsLoading(true);
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const pos = [position.coords.latitude, position.coords.longitude];
-          setCurrentPosition(pos);
-          setGpsError(null);
-          setGpsLoading(false);
-        },
-        (error) => {
-          console.error('Errore geolocalizzazione:', error);
-          let errorMsg = 'Errore GPS';
-          if (error.code === 1) errorMsg = 'Permesso GPS negato - Abilita nelle impostazioni del browser';
-          if (error.code === 2) errorMsg = 'Posizione non disponibile';
-          if (error.code === 3) errorMsg = 'Timeout GPS - Riprova';
-          setGpsError(errorMsg);
-          setGpsLoading(false);
-        },
-        { 
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        }
-      );
-    } else {
+    console.log('🔍 Controllo supporto GPS...');
+    
+    if (!('geolocation' in navigator)) {
+      console.error('❌ GPS non supportato');
       setGpsError('GPS non supportato dal browser');
       setGpsLoading(false);
+      return;
     }
+    
+    console.log('✓ GPS supportato, richiesta posizione...');
+    setGpsLoading(true);
+    
+    const timeoutId = setTimeout(() => {
+      console.error('⏱️ Timeout GPS dopo 30 secondi');
+      setGpsError('Timeout GPS - Dai il permesso di localizzazione quando richiesto');
+      setGpsLoading(false);
+    }, 30000);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        clearTimeout(timeoutId);
+        console.log('✅ Posizione ricevuta:', position.coords.latitude, position.coords.longitude);
+        const pos = [position.coords.latitude, position.coords.longitude];
+        setCurrentPosition(pos);
+        setGpsError(null);
+        setGpsLoading(false);
+      },
+      (error) => {
+        clearTimeout(timeoutId);
+        console.error('❌ Errore GPS:', error.code, error.message);
+        let errorMsg = 'Errore GPS';
+        if (error.code === 1) errorMsg = 'Permesso GPS negato - Vai in Impostazioni > Safari > Posizione';
+        if (error.code === 2) errorMsg = 'Posizione non disponibile - Controlla connessione';
+        if (error.code === 3) errorMsg = 'Timeout GPS - Assicurati di essere all\'aperto';
+        setGpsError(errorMsg);
+        setGpsLoading(false);
+      },
+      { 
+        enableHighAccuracy: true,
+        timeout: 30000,
+        maximumAge: 0
+      }
+    );
   }, []);
   
   // Avvia tracking GPS
