@@ -57,7 +57,7 @@ function MapUpdater({ position }) {
 function App() {
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionId, setSessionId] = useState(null);
-  const [currentPosition, setCurrentPosition] = useState(null);
+  const [currentPosition, setCurrentPosition] = useState([41.9028, 12.4964]); // Roma default per iOS
   const [route, setRoute] = useState([]);
   const [watchId, setWatchId] = useState(null);
   const sessionIdRef = useRef(null);
@@ -66,47 +66,32 @@ function App() {
   const [selectedPastSession, setSelectedPastSession] = useState(null);
   const [pastSessionDetails, setPastSessionDetails] = useState(null);
   const [pastEvents, setPastEvents] = useState([]);
-  const [gpsError, setGpsError] = useState(null);
-  const [gpsLoading, setGpsLoading] = useState(true);
+  const [gpsReady, setGpsReady] = useState(false);
   
   // Richiedi permessi geolocalizzazione all'avvio
   useEffect(() => {
-    console.log('🔍 Controllo supporto GPS...');
+    console.log('🔍 Richiesta GPS...');
     
     if (!('geolocation' in navigator)) {
       console.error('❌ GPS non supportato');
-      setGpsError('GPS non supportato dal browser');
-      setGpsLoading(false);
+      alert('GPS non supportato dal browser');
       return;
     }
     
-    console.log('✓ GPS supportato, richiesta posizione...');
-    setGpsLoading(true);
-    
-    const timeoutId = setTimeout(() => {
-      console.error('⏱️ Timeout GPS dopo 30 secondi');
-      setGpsError('Timeout GPS - Dai il permesso di localizzazione quando richiesto');
-      setGpsLoading(false);
-    }, 30000);
-    
+    // Richiedi subito la posizione in background
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        clearTimeout(timeoutId);
-        console.log('✅ Posizione ricevuta:', position.coords.latitude, position.coords.longitude);
+        console.log('✅ GPS ricevuto:', position.coords.latitude, position.coords.longitude);
         const pos = [position.coords.latitude, position.coords.longitude];
         setCurrentPosition(pos);
-        setGpsError(null);
-        setGpsLoading(false);
+        setGpsReady(true);
       },
       (error) => {
-        clearTimeout(timeoutId);
         console.error('❌ Errore GPS:', error.code, error.message);
-        let errorMsg = 'Errore GPS';
-        if (error.code === 1) errorMsg = 'Permesso GPS negato - Vai in Impostazioni > Safari > Posizione';
-        if (error.code === 2) errorMsg = 'Posizione non disponibile - Controlla connessione';
-        if (error.code === 3) errorMsg = 'Timeout GPS - Assicurati di essere all\'aperto';
-        setGpsError(errorMsg);
-        setGpsLoading(false);
+        setGpsReady(true); // Usa posizione default
+        if (error.code === 1) {
+          alert('Permesso GPS negato. Vai in Impostazioni > Safari > Posizione e consenti.');
+        }
       },
       { 
         enableHighAccuracy: true,
@@ -380,8 +365,6 @@ function App() {
       {viewMode === 'live' ? (
         <>
           <div className="map-container">
-        {!gpsLoading && currentPosition ? (
-          <>
             <MapContainer
               center={currentPosition}
               zoom={16}
@@ -397,43 +380,25 @@ function App() {
               )}
               <MapUpdater position={currentPosition} />
             </MapContainer>
-          </>
-        ) : (
-          <div className="loading">
-            {gpsLoading ? (
-              <>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
-                <div>Attendi il GPS...</div>
-                <div style={{ fontSize: '0.9rem', color: '#999', marginTop: '0.5rem' }}>
-                  Assicurati di aver dato i permessi di localizzazione
-                </div>
-              </>
-            ) : gpsError ? (
-              <>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem', color: '#dc2626' }}>⚠️</div>
-                <div style={{ color: '#dc2626', fontWeight: 'bold' }}>{gpsError}</div>
-                <button 
-                  onClick={() => window.location.reload()}
-                  style={{
-                    marginTop: '1rem',
-                    padding: '0.75rem 1.5rem',
-                    background: '#2563eb',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '1rem'
-                  }}
-                >
-                  Riprova
-                </button>
-              </>
-            ) : (
-              <div>Inizializzazione...</div>
+            
+            {!gpsReady && (
+              <div style={{
+                position: 'absolute',
+                top: '10px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(37, 99, 235, 0.95)',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                zIndex: 1000,
+                fontSize: '0.9rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+              }}>
+                📍 Rilevamento posizione GPS...
+              </div>
             )}
           </div>
-        )}
-      </div>
       
       {sessionActive && (
         <div className="event-buttons">
