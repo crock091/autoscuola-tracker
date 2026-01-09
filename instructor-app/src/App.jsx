@@ -327,49 +327,102 @@ function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1>🚗 Autoscuola Tracker</h1>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-          <button 
-            onClick={() => setViewMode('live')}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: viewMode === 'live' ? '#4CAF50' : '#ddd',
-              color: viewMode === 'live' ? 'white' : 'black',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}>
-            📍 Guida Live
-          </button>
-          <button 
-            onClick={() => setViewMode('history')}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: viewMode === 'history' ? '#4CAF50' : '#ddd',
-              color: viewMode === 'history' ? 'white' : 'black',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}>
-            📋 Storico
-          </button>
-        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              onClick={() => setViewMode('live')}
+              style={{
+                padding: '14px',
+                backgroundColor: viewMode === 'live' ? '#2563eb' : '#f3f4f6',
+                color: viewMode === 'live' ? 'white' : '#6b7280',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                fontSize: '1.3rem',
+                minWidth: '52px',
+                minHeight: '52px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: viewMode === 'live' ? '0 4px 12px rgba(37, 99, 235, 0.3)' : 'none',
+                transition: 'all 0.2s'
+              }}
+              title="Guida Live">
+              📍
+            </button>
+            <button 
+              onClick={() => setViewMode('history')}
+              style={{
+                padding: '14px',
+                backgroundColor: viewMode === 'history' ? '#2563eb' : '#f3f4f6',
+                color: viewMode === 'history' ? 'white' : '#6b7280',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                fontSize: '1.3rem',
+                minWidth: '52px',
+                minHeight: '52px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: viewMode === 'history' ? '0 4px 12px rgba(37, 99, 235, 0.3)' : 'none',
+                transition: 'all 0.2s'
+              }}
+              title="Storico">
+              📋
+            </button>
+          </div>
 
-        {viewMode === 'live' && (
-          <div className="session-controls">
-          {!sessionActive ? (
-            <button onClick={startSession} className="btn btn-start">
-              Inizia Guida
-            </button>
-          ) : (
-            <button onClick={endSession} className="btn btn-end">
-              Termina Guida
-            </button>
+          {viewMode === 'live' && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {!sessionActive ? (
+                <button 
+                  onClick={startSession}
+                  style={{
+                    padding: '14px 24px',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontSize: '1.5rem',
+                    minHeight: '52px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                    transition: 'all 0.2s'
+                  }}
+                  title="Inizia Guida">
+                  ▶️
+                </button>
+              ) : (
+                <button 
+                  onClick={endSession}
+                  style={{
+                    padding: '14px 24px',
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontSize: '1.5rem',
+                    minHeight: '52px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                    transition: 'all 0.2s'
+                  }}
+                  title="Termina Guida">
+                  ⏹️
+                </button>
+              )}
+            </div>
           )}
         </div>
-        )}
       </div>
       
       {viewMode === 'live' ? (
