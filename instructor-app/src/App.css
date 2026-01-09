@@ -33,10 +33,16 @@
   flex: 1;
   position: relative;
   min-height: 0; /* iOS fix per flexbox */
+  width: 100%;
 }
 
 /* Fix esplicito per container Leaflet su iOS */
-.map-container > div {
+.map-container .leaflet-container {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   height: 100% !important;
   width: 100% !important;
 }
