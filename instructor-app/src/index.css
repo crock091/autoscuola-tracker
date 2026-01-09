@@ -2,6 +2,13 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Fix touch events per iOS */
+.leaflet-container {
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 body {
