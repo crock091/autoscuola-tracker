@@ -337,7 +337,7 @@
 .history-toggle {
   position: fixed;
   top: 80px;
-  left: 10px;
+  right: 10px;
   z-index: 1000;
   background: #2563eb;
   color: white;

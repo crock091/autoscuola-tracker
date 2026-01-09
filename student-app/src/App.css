@@ -251,7 +251,7 @@
   display: none;
   position: fixed;
   top: 1rem;
-  left: 1rem;
+  right: 1rem;
   z-index: 2000;
   background: #2563eb;
   color: white;
