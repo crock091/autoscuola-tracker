@@ -104,10 +104,10 @@ function App() {
     );
   };
   
-  // Richiedi GPS all'avvio (funziona su Android, su iOS serve user gesture)
-  useEffect(() => {
-    requestGPS();
-  }, []);
+  // Non richiedere GPS automaticamente - solo quando l'utente preme il pulsante
+  // useEffect(() => {
+  //   requestGPS();
+  // }, []);
   
   // Avvia tracking GPS
   const startTracking = () => {
