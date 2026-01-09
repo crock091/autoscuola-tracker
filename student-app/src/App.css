@@ -1,6 +1,7 @@
 .app {
   display: flex;
   height: 100vh;
+  height: 100dvh; /* iOS fix */
   overflow: hidden;
 }
 
@@ -11,6 +12,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -117,6 +119,13 @@
 .map-wrapper {
   flex: 1;
   position: relative;
+  min-height: 0; /* iOS fix per flexbox */
+}
+
+/* Fix esplicito per container Leaflet su iOS */
+.map-wrapper > div {
+  height: 100% !important;
+  width: 100% !important;
 }
 
 .events-panel {
