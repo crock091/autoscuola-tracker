@@ -46,6 +46,7 @@ function App() {
   const [sessionDetails, setSessionDetails] = useState(null);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   
   // Carica sessioni all'avvio
   useEffect(() => {
@@ -191,9 +192,31 @@ function App() {
   
   return (
     <div className="app">
-      <div className="sidebar">
+      {/* Menu toggle per mobile */}
+      <button 
+        className="menu-toggle" 
+        onClick={() => setMenuOpen(true)}
+        aria-label="Apri menu"
+      >
+        ☰
+      </button>
+
+      {/* Overlay per chiudere menu su mobile */}
+      <div 
+        className={`overlay ${menuOpen ? 'visible' : ''}`}
+        onClick={() => setMenuOpen(false)}
+      />
+
+      <div className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <h1>📚 Le Mie Guide</h1>
+          <button 
+            className="btn-close"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Chiudi menu"
+          >
+            ×
+          </button>
         </div>
         
         <div className="sessions-list">
@@ -208,7 +231,10 @@ function App() {
                 className={`session-card ${selectedSession === session.id ? 'active' : ''}`}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
-                <div onClick={() => setSelectedSession(session.id)} style={{ flex: 1, cursor: 'pointer' }}>
+                <div onClick={() => { 
+                  setSelectedSession(session.id);
+                  setMenuOpen(false); // Chiudi menu su mobile quando si seleziona
+                }} style={{ flex: 1, cursor: 'pointer' }}>
                   <div className="session-date">
                     {formatDate(session.inizio)}
                   </div>

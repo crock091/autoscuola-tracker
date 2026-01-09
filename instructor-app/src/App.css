@@ -134,20 +134,163 @@
   transform: translateY(0);
 }
 
+/* Tab History View */
+.view-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-tab {
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-tab.active {
+  background: white;
+  color: #2563eb;
+  border-color: white;
+}
+
+.history-container {
+  padding: 1rem;
+  overflow-y: auto;
+  height: calc(100vh - 80px);
+}
+
+.history-sessions {
+  display: grid;
+  gap: 1rem;
+}
+
+.history-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.history-card:hover {
+  border-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+
+.history-detail {
+  padding: 1rem;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.btn-back {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-back:hover {
+  background: #4b5563;
+}
+
+.detail-map {
+  height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.detail-events {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.detail-events h3 {
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.event-item {
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.event-item.error {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
+.event-item.success {
+  background: #d1fae5;
+  border-color: #10b981;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
+  .header {
+    padding: 0.75rem;
+  }
+
   .header h1 {
-    font-size: 1.2rem;
+    font-size: 1rem;
+  }
+  
+  .session-controls {
+    gap: 0.25rem;
+  }
+
+  .view-tabs {
+    gap: 0.25rem;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .btn-tab {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
   }
   
   .event-buttons {
     bottom: 10px;
-    gap: 8px;
-    padding: 10px;
+    left: 10px;
+    right: 10px;
+    transform: none;
+    max-width: 100%;
+    gap: 6px;
+    padding: 8px;
   }
   
   .btn-event {
-    padding: 10px 16px;
-    font-size: 0.85rem;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .history-container {
+    padding: 0.5rem;
+  }
+
+  .detail-map {
+    height: 300px;
   }
 }
