@@ -57,7 +57,7 @@ function MapUpdater({ position }) {
 function App() {
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionId, setSessionId] = useState(null);
-  const [currentPosition, setCurrentPosition] = useState(null);
+  const [currentPosition, setCurrentPosition] = useState([45.4642, 9.1900]); // Milano default
   const [route, setRoute] = useState([]);
   const [watchId, setWatchId] = useState(null);
   const sessionIdRef = useRef(null);
@@ -66,18 +66,39 @@ function App() {
   const [selectedPastSession, setSelectedPastSession] = useState(null);
   const [pastSessionDetails, setPastSessionDetails] = useState(null);
   const [pastEvents, setPastEvents] = useState([]);
+  const [gpsError, setGpsError] = useState(null);
   
   // Richiedi permessi geolocalizzazione all'avvio
   useEffect(() => {
     if ('geolocation' in navigator) {
+      const timeoutId = setTimeout(() => {
+        setGpsError('Timeout GPS - Assicurati di aver dato i permessi');
+      }, 10000);
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          clearTimeout(timeoutId);
           const pos = [position.coords.latitude, position.coords.longitude];
           setCurrentPosition(pos);
+          setGpsError(null);
         },
-        (error) => console.error('Errore geolocalizzazione:', error),
-        { enableHighAccuracy: true }
+        (error) => {
+          clearTimeout(timeoutId);
+          console.error('Errore geolocalizzazione:', error);
+          let errorMsg = 'Errore GPS';
+          if (error.code === 1) errorMsg = 'Permesso GPS negato - Abilita nelle impostazioni';
+          if (error.code === 2) errorMsg = 'Posizione non disponibile';
+          if (error.code === 3) errorMsg = 'Timeout GPS';
+          setGpsError(errorMsg);
+        },
+        { 
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
       );
+    } else {
+      setGpsError('GPS non supportato dal browser');
     }
   }, []);
   
@@ -345,24 +366,40 @@ function App() {
       {viewMode === 'live' ? (
         <>
           <div className="map-container">
-        {currentPosition ? (
-          <MapContainer
-            center={currentPosition}
-            zoom={16}
-            style={{ height: '100%', width: '100%' }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Marker position={currentPosition} />
-            {route.length > 1 && (
-              <Polyline positions={route} color="blue" weight={4} />
-            )}
-            <MapUpdater position={currentPosition} />
-          </MapContainer>
-        ) : (
-          <div className="loading">Caricamento mappa...</div>
+        <MapContainer
+          center={currentPosition}
+          zoom={16}
+          style={{ height: '100%', width: '100%' }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <Marker position={currentPosition} />
+          {route.length > 1 && (
+            <Polyline positions={route} color="blue" weight={4} />
+          )}
+          <MapUpdater position={currentPosition} />
+        </MapContainer>
+        
+        {gpsError && (
+          <div style={{
+            position: 'absolute',
+            top: '10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#fee2e2',
+            color: '#dc2626',
+            padding: '12px 20px',
+            borderRadius: '8px',
+            border: '2px solid #dc2626',
+            zIndex: 1000,
+            maxWidth: '90%',
+            textAlign: 'center',
+            fontWeight: 'bold'
+          }}>
+            ⚠️ {gpsError}
+          </div>
         )}
       </div>
       
