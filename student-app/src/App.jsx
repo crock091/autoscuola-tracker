@@ -401,12 +401,6 @@ function App() {
                         setSelectedEventLocation([event.lat, event.lon]);
                         setHighlightedEventId(event.id);
                         setTimeout(() => setHighlightedEventId(null), 3000);
-                        
-                        // Apri video se disponibile
-                        if (event.video_url) {
-                          setCurrentVideoUrl(event.video_url);
-                          setVideoModalOpen(true);
-                        }
                       }}
                       style={{ cursor: 'pointer' }}
                     >
@@ -417,7 +411,30 @@ function App() {
                         <div className="event-title">{getEventLabel(event.tipo)}</div>
                         <div className="event-time">{formatDate(event.timestamp)}</div>
                         {event.video_url && (
-                          <div className="video-badge">🎥 Video disponibile</div>
+                          <button
+                            className="video-badge"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentVideoUrl(event.video_url);
+                              setVideoModalOpen(true);
+                            }}
+                            style={{
+                              background: '#2563eb',
+                              color: 'white',
+                              border: 'none',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              marginTop: '8px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            🎥 Guarda video
+                          </button>
                         )}
                       </div>
                     </div>

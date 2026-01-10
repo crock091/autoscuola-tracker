@@ -556,24 +556,15 @@ function App() {
             
             {/* Indicatore velocità */}
             {gpsReady && sessionActive && (
-              <div style={{
-                position: 'absolute',
-                top: '20px',
-                right: '20px',
-                background: (() => {
-                  if (speedLimit && currentSpeed > speedLimit) return 'rgba(239, 68, 68, 0.95)'; // Rosso se supera il limite
-                  if (speedLimit && currentSpeed > speedLimit - 5) return 'rgba(245, 158, 11, 0.95)'; // Arancione se vicino al limite
-                  return 'rgba(16, 185, 129, 0.95)'; // Verde altrimenti
-                })(),
-                color: 'white',
-                padding: '15px 20px',
-                borderRadius: '12px',
-                zIndex: 1000,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                textAlign: 'center',
-                minWidth: '120px',
-                fontWeight: 'bold'
-              }}>
+              <div 
+                className="speed-indicator"
+                style={{
+                  background: (() => {
+                    if (speedLimit && currentSpeed > speedLimit) return 'rgba(239, 68, 68, 0.95)'; // Rosso se supera il limite
+                    if (speedLimit && currentSpeed > speedLimit - 5) return 'rgba(245, 158, 11, 0.95)'; // Arancione se vicino al limite
+                    return 'rgba(16, 185, 129, 0.95)'; // Verde altrimenti
+                  })()
+                }}>
                 <div style={{ fontSize: '0.7rem', marginBottom: '5px', opacity: 0.9 }}>VELOCITÀ</div>
                 <div style={{ fontSize: '2rem', lineHeight: '1' }}>
                   {currentSpeed}
@@ -837,12 +828,6 @@ function App() {
                               setSelectedEventLocation([event.lat, event.lon]);
                               setHighlightedEventId(event.id);
                               setTimeout(() => setHighlightedEventId(null), 3000);
-                              
-                              // Apri video se disponibile
-                              if (event.video_url) {
-                                setCurrentVideoUrl(event.video_url);
-                                setVideoModalOpen(true);
-                              }
                             }}
                             style={{ cursor: 'pointer' }}
                           >
@@ -853,7 +838,30 @@ function App() {
                               <div className="event-title">{event.tipo.replace(/_/g, ' ').toUpperCase()}</div>
                               <div className="event-time">{new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleTimeString('it-IT')}</div>
                               {event.video_url && (
-                                <div className="video-badge">🎥 Video disponibile</div>
+                                <button
+                                  className="video-badge"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCurrentVideoUrl(event.video_url);
+                                    setVideoModalOpen(true);
+                                  }}
+                                  style={{
+                                    background: '#2563eb',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    marginTop: '8px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '600',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                >
+                                  🎥 Guarda video
+                                </button>
                               )}
                             </div>
                           </div>
@@ -888,12 +896,6 @@ function App() {
                       setSelectedEventLocation([event.lat, event.lon]);
                       setHighlightedEventId(event.id);
                       setTimeout(() => setHighlightedEventId(null), 3000);
-                      
-                      // Apri video se disponibile
-                      if (event.video_url) {
-                        setCurrentVideoUrl(event.video_url);
-                        setVideoModalOpen(true);
-                      }
                     }}
                     style={{
                       padding: '12px',
@@ -917,9 +919,27 @@ function App() {
                       {new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleTimeString('it-IT')}
                     </div>
                     {event.video_url && (
-                      <div style={{ fontSize: '0.75em', color: '#2563eb', marginTop: '5px', fontWeight: 500 }}>
-                        🎥 Video disponibile
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentVideoUrl(event.video_url);
+                          setVideoModalOpen(true);
+                        }}
+                        style={{
+                          background: '#2563eb',
+                          color: 'white',
+                          border: 'none',
+                          padding: '8px 16px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          marginTop: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: '600',
+                          width: '100%'
+                        }}
+                      >
+                        🎥 Guarda video
+                      </button>
                     )}
                   </div>
                 ))}

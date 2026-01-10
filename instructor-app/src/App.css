@@ -28,8 +28,9 @@
   color: #1f2937;
   padding: 0.75rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  z-index: 1000;
+  z-index: 2000;
   flex-shrink: 0;
+  position: relative;
 }
 
 .header h1 {
@@ -314,16 +315,16 @@
     transform: none;
     max-width: none;
     width: calc(100% - 20px);
-    gap: 8px;
-    padding: 10px;
+    gap: 6px;
+    padding: 8px;
   }
   
   .btn-event {
-    padding: 12px 16px;
-    font-size: 0.85rem;
-    flex: 1 1 calc(50% - 4px);
-    min-width: 120px;
-    min-height: 48px;
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    flex: 1 1 calc(33.333% - 4px);
+    min-width: 90px;
+    min-height: 40px;
   }
 
   .history-container {
@@ -354,19 +355,32 @@
   position: fixed;
   top: 80px;
   right: 10px;
-  z-index: 1000;
-  background: #2563eb;
-  color: white;
-  border: none;
-  borderRadius: 50%;
+  z-index: 2500;
+  background: white;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+  border-radius: 50%;
   width: 48px;
   height: 48px;
   font-size: 1.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s ease;
+  touch-action: manipulation;
+}
+
+.history-toggle:hover {
+  background: #2563eb;
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+}
+
+.history-toggle:active {
+  transform: scale(0.95);
 }
 
 @media (max-width: 768px) {
@@ -377,7 +391,7 @@
     bottom: 0;
     width: 85%;
     max-width: 320px;
-    z-index: 1500;
+    z-index: 2100;
     transition: left 0.3s ease;
     box-shadow: 4px 0 20px rgba(0,0,0,0.1);
   }
@@ -410,7 +424,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 1400;
+  z-index: 2050;
 }
 
 .history-overlay.visible {
@@ -553,4 +567,30 @@
 
 .close-modal:hover {
   background: #dc2626;
+}
+
+/* Speed indicator */
+.speed-indicator {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 12px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  text-align: center;
+  min-width: 120px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .speed-indicator {
+    top: 10px;
+    right: 10px;
+    padding: 10px 15px;
+    min-width: 100px;
+    font-size: 0.9rem;
+  }
 }
