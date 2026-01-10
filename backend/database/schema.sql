@@ -44,6 +44,7 @@ CREATE TABLE events (
     descrizione TEXT,
     location GEOGRAPHY(POINT, 4326) NOT NULL,
     timestamp TIMESTAMP NOT NULL,
+    video_url TEXT,  -- URL del video clip su Supabase Storage
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

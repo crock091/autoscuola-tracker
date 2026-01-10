@@ -2,6 +2,7 @@
 """
 Script per estrarre clip video dalla dashcam basandosi sugli eventi registrati.
 Estrae 30 secondi prima e 30 secondi dopo ogni evento.
+Carica automaticamente i video su Supabase Storage.
 """
 
 import os
@@ -9,10 +10,16 @@ import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 import requests
+from dotenv import load_dotenv
+
+# Carica variabili ambiente
+load_dotenv()
 
 # Configurazione Supabase
-API_URL = 'https://wokjywwzgyrgkiriyvyj.supabase.co/rest/v1'
-SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indva2p5d3d6Z3lyZ2tpcml5dnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDQzNzMsImV4cCI6MjA4MzUyMDM3M30.o6UVvuR3yOfyhG00-0FUsz6V6vC_qSzPG44TrEMCKA4'
+API_URL = os.getenv('SUPABASE_URL', 'https://wokjywwzgyrgkiriyvyj.supabase.co') + '/rest/v1'
+STORAGE_URL = os.getenv('SUPABASE_URL', 'https://wokjywwzgyrgkiriyvyj.supabase.co') + '/storage/v1'
+# Per upload video serve la service_role key (non la anon key!)
+SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indva2p5d3d6Z3lyZ2tpcml5dnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDQzNzMsImV4cCI6MjA4MzUyMDM3M30.o6UVvuR3yOfyhG00-0FUsz6V6vC_qSzPG44TrEMCKA4')
 
 headers = {
     'apikey': SUPABASE_KEY,
@@ -128,7 +135,11 @@ def extract_clip(video_path, output_path, offset_seconds, duration=60):
         '-i', video_path,
         '-ss', str(start),
         '-t', str(duration),
-        '-c', 'copy',  # Copia senza re-encoding (veloce!)
+        '-vcodec', 'libx264',  # Re-encode per comprimere
+        '-crf', '30',  # Qualità aumentata per ridurre dimensione (era 28)
+        '-preset', 'fast',  # Velocità encoding
+        '-acodec', 'aac',  # Audio codec
+        '-b:a', '96k',  # Bitrate audio ridotto (era 128k)
         '-avoid_negative_ts', '1',  # Evita problemi con timestamp negativi
         '-y',  # Sovrascrivi se esiste
         output_path
@@ -152,6 +163,70 @@ def format_event_type(tipo):
         'manovra_corretta': 'Manovra_Corretta'
     }
     return labels.get(tipo, tipo.replace('_', ' ').title())
+
+def upload_to_supabase(file_path, bucket='driving-videos'):
+    """
+    Carica un file su Supabase Storage
+    
+    Args:
+        file_path: Percorso del file locale da caricare
+        bucket: Nome del bucket Supabase (default: 'driving-videos')
+    
+    Returns:
+        URL pubblico del file caricato, o None se errore
+    """
+    try:
+        filename = os.path.basename(file_path)
+        
+        # Leggi il file
+        with open(file_path, 'rb') as f:
+            file_content = f.read()
+        
+        # Upload su Supabase Storage
+        upload_url = f"{STORAGE_URL}/object/{bucket}/{filename}"
+        upload_response = requests.post(
+            upload_url,
+            headers={
+                **headers,
+                'Content-Type': 'video/mp4'
+            },
+            data=file_content
+        )
+        
+        if upload_response.status_code in [200, 201]:
+            # Genera URL pubblico
+            public_url = f"{STORAGE_URL.replace('/storage/v1', '')}/storage/v1/object/public/{bucket}/{filename}"
+            return public_url
+        else:
+            print(f"   ⚠️  Errore upload: {upload_response.status_code} - {upload_response.text}")
+            return None
+            
+    except Exception as e:
+        print(f"   ⚠️  Errore upload: {e}")
+        return None
+
+def update_event_video_url(event_id, video_url):
+    """
+    Aggiorna il campo video_url di un evento nel database
+    
+    Args:
+        event_id: ID dell'evento
+        video_url: URL del video su Supabase Storage
+    
+    Returns:
+        True se successo, False altrimenti
+    """
+    try:
+        response = requests.patch(
+            f"{API_URL}/events?id=eq.{event_id}",
+            headers={**headers, 'Content-Type': 'application/json'},
+            json={'video_url': video_url}
+        )
+        return response.status_code in [200, 204]
+    except Exception as e:
+        print(f"   ⚠️  Errore aggiornamento DB: {e}")
+        return False
+
 
 def main():
     print("=" * 60)
@@ -250,8 +325,23 @@ def main():
         # Estrai clip
         video_path = os.path.join(video_dir, video_file)
         if extract_clip(video_path, output_path, offset_seconds):
-            print("✓ Estratto")
-            success_count += 1
+            print("✓ Estratto", end=' ')
+            
+            # Upload su Supabase
+            print("→ Upload...", end=' ')
+            video_url = upload_to_supabase(output_path)
+            
+            if video_url:
+                # Aggiorna DB con URL video
+                if update_event_video_url(event['id'], video_url):
+                    print("✓ Caricato")
+                    success_count += 1
+                else:
+                    print("⚠️  DB non aggiornato")
+                    success_count += 1  # Conta comunque come successo (video estratto)
+            else:
+                print("⚠️  Upload fallito (video salvato localmente)")
+                success_count += 1  # Conta come successo parziale
         else:
             print("❌ Errore estrazione")
             skip_count += 1

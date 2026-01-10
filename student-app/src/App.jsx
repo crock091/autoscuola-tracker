@@ -62,6 +62,8 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(true); // Sidebar visibile all'avvio
   const [selectedEventLocation, setSelectedEventLocation] = useState(null);
   const [highlightedEventId, setHighlightedEventId] = useState(null); // ID evento evidenziato
+  const [videoModalOpen, setVideoModalOpen] = useState(false); // Modal video
+  const [currentVideoUrl, setCurrentVideoUrl] = useState(null); // URL video corrente
   
   // Carica sessioni all'avvio
   useEffect(() => {
@@ -399,6 +401,12 @@ function App() {
                         setSelectedEventLocation([event.lat, event.lon]);
                         setHighlightedEventId(event.id);
                         setTimeout(() => setHighlightedEventId(null), 3000);
+                        
+                        // Apri video se disponibile
+                        if (event.video_url) {
+                          setCurrentVideoUrl(event.video_url);
+                          setVideoModalOpen(true);
+                        }
                       }}
                       style={{ cursor: 'pointer' }}
                     >
@@ -408,6 +416,9 @@ function App() {
                       <div className="event-content">
                         <div className="event-title">{getEventLabel(event.tipo)}</div>
                         <div className="event-time">{formatDate(event.timestamp)}</div>
+                        {event.video_url && (
+                          <div className="video-badge">🎥 Video disponibile</div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -421,6 +432,27 @@ function App() {
           </div>
         )}
       </div>
+      
+      {/* Modal Video */}
+      {videoModalOpen && currentVideoUrl && (
+        <div className="video-modal-overlay" onClick={() => setVideoModalOpen(false)}>
+          <div className="video-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal" onClick={() => setVideoModalOpen(false)}>✕</button>
+            <h3>Video Evento</h3>
+            <video 
+              controls 
+              autoPlay 
+              style={{ width: '100%', maxHeight: '70vh', borderRadius: '8px' }}
+            >
+              <source src={currentVideoUrl} type="video/mp4" />
+              Il tuo browser non supporta la riproduzione video.
+            </video>
+            <p style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
+              Clip di 60 secondi (30s prima + 30s dopo l'evento)
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

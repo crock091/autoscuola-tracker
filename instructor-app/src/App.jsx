@@ -77,6 +77,8 @@ function App() {
   const [currentSpeed, setCurrentSpeed] = useState(0); // Velocità in km/h
   const [speedLimit, setSpeedLimit] = useState(null); // Limite di velocità della strada
   const lastSpeedCheckRef = useRef(null); // Ultima posizione per cui abbiamo controllato il limite
+  const [videoModalOpen, setVideoModalOpen] = useState(false); // Modal video
+  const [currentVideoUrl, setCurrentVideoUrl] = useState(null); // URL video corrente
   
   // Funzione per ottenere il limite di velocità dalla strada (Overpass API)
   const fetchSpeedLimit = async (lat, lon) => {
@@ -829,6 +831,12 @@ function App() {
                               setSelectedEventLocation([event.lat, event.lon]);
                               setHighlightedEventId(event.id);
                               setTimeout(() => setHighlightedEventId(null), 3000);
+                              
+                              // Apri video se disponibile
+                              if (event.video_url) {
+                                setCurrentVideoUrl(event.video_url);
+                                setVideoModalOpen(true);
+                              }
                             }}
                             style={{ cursor: 'pointer' }}
                           >
@@ -838,6 +846,9 @@ function App() {
                             <div className="event-content">
                               <div className="event-title">{event.tipo.replace(/_/g, ' ').toUpperCase()}</div>
                               <div className="event-time">{new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleTimeString('it-IT')}</div>
+                              {event.video_url && (
+                                <div className="video-badge">🎥 Video disponibile</div>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -871,6 +882,12 @@ function App() {
                       setSelectedEventLocation([event.lat, event.lon]);
                       setHighlightedEventId(event.id);
                       setTimeout(() => setHighlightedEventId(null), 3000);
+                      
+                      // Apri video se disponibile
+                      if (event.video_url) {
+                        setCurrentVideoUrl(event.video_url);
+                        setVideoModalOpen(true);
+                      }
                     }}
                     style={{
                       padding: '12px',
@@ -893,12 +910,38 @@ function App() {
                     <div style={{ fontSize: '0.8em', color: '#666' }}>
                       {new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleTimeString('it-IT')}
                     </div>
+                    {event.video_url && (
+                      <div style={{ fontSize: '0.75em', color: '#2563eb', marginTop: '5px', fontWeight: 500 }}>
+                        🎥 Video disponibile
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
           </div>
         </>
+      )}
+      
+      {/* Modal Video */}
+      {videoModalOpen && currentVideoUrl && (
+        <div className="video-modal-overlay" onClick={() => setVideoModalOpen(false)}>
+          <div className="video-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal" onClick={() => setVideoModalOpen(false)}>✕</button>
+            <h3>Video Evento</h3>
+            <video 
+              controls 
+              autoPlay 
+              style={{ width: '100%', maxHeight: '70vh', borderRadius: '8px' }}
+            >
+              <source src={currentVideoUrl} type="video/mp4" />
+              Il tuo browser non supporta la riproduzione video.
+            </video>
+            <p style={{ marginTop: '10px', fontSize: '12px', color: '#888' }}>
+              Clip di 60 secondi (30s prima + 30s dopo l'evento)
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
