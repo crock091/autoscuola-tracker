@@ -7,6 +7,7 @@ Carica automaticamente i video su Supabase Storage.
 
 import os
 import subprocess
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 import requests
@@ -228,72 +229,37 @@ def update_event_video_url(event_id, video_url):
         return False
 
 
-def main():
-    print("=" * 60)
-    print("🎥 Video Clip Extractor - Autoscuola Tracker")
-    print("=" * 60)
-    print()
+def process_session(session, video_dir, output_dir):
+    """Processa una singola sessione estraendo tutti i video degli eventi"""
+    session_id = session['id']
+    inizio = datetime.fromisoformat(session['inizio'].replace('Z', '+00:00'))
     
-    # Verifica FFmpeg
-    if not check_ffmpeg():
-        return
-    
-    # Input directory video dashcam
-    print("\n📁 Inserisci il percorso della cartella con i video della dashcam:")
-    print("   (Es: D:\\Dashcam o /Volumes/DASHCAM)")
-    video_dir = input("   > ").strip().strip('"')
-    
-    if not os.path.isdir(video_dir):
-        print(f"❌ Cartella non trovata: {video_dir}")
-        return
-    
-    # Output directory
-    output_dir = os.path.join(os.path.dirname(__file__), 'clips_estratti')
-    os.makedirs(output_dir, exist_ok=True)
-    print(f"\n📂 I clip saranno salvati in: {output_dir}")
-    
-    # Carica sessioni
-    print("\n📋 Caricamento sessioni...")
-    sessions = get_sessions()
-    
-    if not sessions:
-        print("❌ Nessuna sessione trovata")
-        return
-    
-    # Mostra sessioni
-    print("\n🚗 Sessioni disponibili:")
-    for i, session in enumerate(sessions, 1):
-        inizio = datetime.fromisoformat(session['inizio'].replace('Z', '+00:00'))
-        print(f"   {i}. {inizio.strftime('%d/%m/%Y %H:%M')} - Allievo ID: {session['allievo_id']}")
-    
-    # Selezione sessione
-    try:
-        choice = int(input("\n   Seleziona sessione (numero): "))
-        if choice < 1 or choice > len(sessions):
-            print("❌ Selezione non valida")
-            return
-        selected_session = sessions[choice - 1]
-    except ValueError:
-        print("❌ Input non valido")
-        return
+    print(f"\n{'='*60}")
+    print(f"📅 Sessione #{session_id} - {inizio.strftime('%d/%m/%Y %H:%M')}")
+    print(f"   Allievo ID: {session['allievo_id']}")
+    print(f"{'='*60}")
     
     # Carica eventi
-    print(f"\n📊 Caricamento eventi...")
-    events = get_events(selected_session['id'])
+    events = get_events(session_id)
     
     if not events:
-        print("⚠️  Nessun evento trovato per questa sessione")
-        return
+        print("   ⚠️  Nessun evento trovato")
+        return 0, 0
     
-    print(f"✓ Trovati {len(events)} eventi")
+    # Filtra eventi senza video
+    events_to_process = [e for e in events if not e.get('video_url')]
     
-    # Estrai clip per ogni evento
-    print(f"\n🎬 Inizio estrazione clip...\n")
+    if not events_to_process:
+        print(f"   ✓ Tutti i {len(events)} eventi hanno già il video caricato")
+        return 0, 0
+    
+    print(f"   📊 Eventi da processare: {len(events_to_process)}/{len(events)}")
+    print()
     
     success_count = 0
     skip_count = 0
     
-    for i, event in enumerate(events, 1):
+    for i, event in enumerate(events_to_process, 1):
         # Converti timestamp (rimuovi timezone per compatibilità)
         event_time = datetime.fromisoformat(event['ts'].replace('Z', '+00:00'))
         
@@ -346,13 +312,112 @@ def main():
             print("❌ Errore estrazione")
             skip_count += 1
     
-    # Riepilogo
-    print("\n" + "=" * 60)
-    print(f"✅ Completato!")
-    print(f"   - Clip estratti: {success_count}")
-    print(f"   - Saltati: {skip_count}")
-    print(f"   - Cartella output: {output_dir}")
+    return success_count, skip_count
+
+def main():
     print("=" * 60)
+    print("🎥 Video Clip Extractor - Autoscuola Tracker")
+    print("=" * 60)
+    print()
+    
+    # Verifica FFmpeg
+    if not check_ffmpeg():
+        return
+    
+    # Controlla se percorso video passato come argomento
+    if len(sys.argv) > 1:
+        video_dir = sys.argv[1].strip().strip('"')
+    else:
+        # Input directory video dashcam
+        print("\n📁 Inserisci il percorso della cartella con i video della dashcam:")
+        print("   (Es: D:\\Dashcam o /Volumes/DASHCAM)")
+        video_dir = input("   > ").strip().strip('"')
+    
+    if not os.path.isdir(video_dir):
+        print(f"❌ Cartella non trovata: {video_dir}")
+        return
+    
+    # Output directory
+    output_dir = os.path.join(os.path.dirname(__file__), 'clips_estratti')
+    os.makedirs(output_dir, exist_ok=True)
+    print(f"\n📂 I clip saranno salvati in: {output_dir}")
+    
+    # Carica sessioni
+    print("\n📋 Caricamento sessioni...")
+    sessions = get_sessions()
+    
+    if not sessions:
+        print("❌ Nessuna sessione trovata")
+        return
+    
+    print(f"✓ Trovate {len(sessions)} sessioni\n")
+    
+    # Chiedi se processare tutte o selezionare
+    print("Vuoi processare:")
+    print("   1. Tutte le sessioni automaticamente")
+    print("   2. Selezionare una sessione specifica")
+    
+    try:
+        # Se non è un terminale interattivo, usa modalità automatica
+        mode = input("\n   Scelta (1 o 2, default 1): ").strip() or '1'
+        
+        if mode == '1':
+            # Modalità automatica - processa tutte
+            print("\n🤖 Modalità automatica: elaborazione di tutte le sessioni...\n")
+            
+            total_success = 0
+            total_skip = 0
+            sessions_processed = 0
+            
+            for session in sessions:
+                success, skip = process_session(session, video_dir, output_dir)
+                total_success += success
+                total_skip += skip
+                if success > 0 or skip > 0:
+                    sessions_processed += 1
+            
+            # Riepilogo finale
+            print("\n" + "=" * 60)
+            print("✅ ELABORAZIONE COMPLETATA!")
+            print("=" * 60)
+            print(f"   📊 Sessioni elaborate: {sessions_processed}/{len(sessions)}")
+            print(f"   ✅ Video estratti e caricati: {total_success}")
+            print(f"   ⏭️  Eventi saltati: {total_skip}")
+            print(f"   📂 Cartella output: {output_dir}")
+            print("=" * 60)
+            
+        elif mode == '2':
+            # Modalità manuale - selezione singola sessione
+            print("\n🚗 Sessioni disponibili:")
+            for i, session in enumerate(sessions, 1):
+                inizio = datetime.fromisoformat(session['inizio'].replace('Z', '+00:00'))
+                print(f"   {i}. {inizio.strftime('%d/%m/%Y %H:%M')} - Allievo ID: {session['allievo_id']}")
+            
+            choice = int(input("\n   Seleziona sessione (numero): "))
+            if choice < 1 or choice > len(sessions):
+                print("❌ Selezione non valida")
+                return
+            
+            selected_session = sessions[choice - 1]
+            success, skip = process_session(selected_session, video_dir, output_dir)
+            
+            # Riepilogo
+            print("\n" + "=" * 60)
+            print(f"✅ Completato!")
+            print(f"   - Clip estratti: {success}")
+            print(f"   - Saltati: {skip}")
+            print(f"   - Cartella output: {output_dir}")
+            print("=" * 60)
+        else:
+            print("❌ Scelta non valida")
+            return
+            
+    except ValueError:
+        print("❌ Input non valido")
+        return
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Operazione annullata dall'utente")
+        return
 
 if __name__ == '__main__':
     try:
