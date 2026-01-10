@@ -41,15 +41,17 @@ const successIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-// Componente per centrare la mappa sulla posizione corrente
-function MapUpdater({ position }) {
+// Componente per centrare la mappa sulla posizione corrente o su eventi
+function MapController({ center, zoom, position }) {
   const map = useMap();
   
   useEffect(() => {
-    if (position) {
+    if (center) {
+      map.setView(center, zoom || 17);
+    } else if (position) {
       map.setView(position, map.getZoom());
     }
-  }, [position, map]);
+  }, [center, zoom, position, map]);
   
   return null;
 }
@@ -485,7 +487,7 @@ function App() {
               {route.length > 1 && (
                 <Polyline positions={route} color="blue" weight={4} />
               )}
-              <MapUpdater position={currentPosition} />
+              <MapController position={currentPosition} />
             </MapContainer>
             
             {!gpsReady && (
