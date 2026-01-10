@@ -299,8 +299,9 @@ function App() {
                   <span className="stat-label">Orario:</span>
                   <span className="stat-value">
                     {(() => {
-                      const inizioDate = new Date(sessionDetails.session.inizio);
-                      const fineDate = sessionDetails.session.fine ? new Date(sessionDetails.session.fine) : new Date();
+                      // Converti da UTC a ora italiana (+1 ora)
+                      const inizioDate = new Date(new Date(sessionDetails.session.inizio).getTime() + 60*60*1000);
+                      const fineDate = sessionDetails.session.fine ? new Date(new Date(sessionDetails.session.fine).getTime() + 60*60*1000) : new Date();
                       
                       // Arrotonda l'ora di inizio all'ora precedente (es. 9:05 -> 9:00)
                       const oraInizio = inizioDate.getHours();
