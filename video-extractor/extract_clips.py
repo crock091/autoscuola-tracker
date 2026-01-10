@@ -285,7 +285,7 @@ def process_session(session, video_dir, output_dir):
         offset_seconds = (event_time_naive - video_start).total_seconds()
         
         # Nome file output
-        output_filename = f"{event_time.strftime('%Y%m%d_%H%M%S')}_{tipo}_Sessione{selected_session['id']}.mp4"
+        output_filename = f"{event_time.strftime('%Y%m%d_%H%M%S')}_{tipo}_Sessione{session['id']}.mp4"
         output_path = os.path.join(output_dir, output_filename)
         
         # Estrai clip

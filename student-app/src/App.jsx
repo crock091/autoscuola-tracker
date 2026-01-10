@@ -296,11 +296,20 @@ function App() {
               <h2>Percorso della guida</h2>
               <div className="stats">
                 <div className="stat">
-                  <span className="stat-label">Durata:</span>
+                  <span className="stat-label">Orario:</span>
                   <span className="stat-value">
-                    {sessionDetails.session.fine ? 
-                      Math.round((new Date(sessionDetails.session.fine) - new Date(sessionDetails.session.inizio)) / 60000) + ' min' 
-                      : 'In corso'}
+                    {(() => {
+                      const inizioDate = new Date(sessionDetails.session.inizio);
+                      const fineDate = sessionDetails.session.fine ? new Date(sessionDetails.session.fine) : new Date();
+                      
+                      // Arrotonda l'ora di inizio all'ora precedente (es. 9:05 -> 9:00)
+                      const oraInizio = inizioDate.getHours();
+                      
+                      // Arrotonda l'ora di fine all'ora successiva (es. 9:50 -> 10:00)
+                      const oraFine = fineDate.getMinutes() > 0 ? fineDate.getHours() + 1 : fineDate.getHours();
+                      
+                      return `dalle ${oraInizio}:00 alle ${oraFine}:00`;
+                    })()}
                   </span>
                 </div>
                 <div className="stat">
