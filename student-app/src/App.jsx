@@ -183,6 +183,25 @@ function App() {
     });
   };
   
+  const formatSessionDate = (session) => {
+    // Converti da UTC a ora italiana (+1 ora)
+    const inizioDate = new Date(new Date(session.inizio).getTime() + 60*60*1000);
+    const fineDate = session.fine ? new Date(new Date(session.fine).getTime() + 60*60*1000) : null;
+    
+    // Formatta la data
+    const dateStr = inizioDate.toLocaleDateString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    
+    // Arrotonda le ore
+    const oraInizio = inizioDate.getHours();
+    const oraFine = fineDate ? (fineDate.getMinutes() > 0 ? fineDate.getHours() + 1 : fineDate.getHours()) : null;
+    
+    return fineDate ? `${dateStr}, ${oraInizio}:00-${oraFine}:00` : `${dateStr}, ${oraInizio}:00`;
+  };
+  
   const getEventIcon = (tipo) => {
     return tipo === 'manovra_corretta' ? successIcon : errorIcon;
   };
@@ -248,7 +267,7 @@ function App() {
                   setMenuOpen(false); // Nascondi sidebar per vedere mappa
                 }} style={{ flex: 1, cursor: 'pointer' }}>
                   <div className="session-date">
-                    {formatDate(session.inizio)}
+                    {formatSessionDate(session)}
                   </div>
                   <div className="session-instructor">
                     Istruttore: {session.istruttore_nome}
