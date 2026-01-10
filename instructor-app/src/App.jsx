@@ -73,6 +73,60 @@ function App() {
   const [gpsError, setGpsError] = useState(null);
   const [historySidebarOpen, setHistorySidebarOpen] = useState(true); // Sidebar history sempre visibile all'inizio
   const [selectedEventLocation, setSelectedEventLocation] = useState(null);
+  const [currentSpeed, setCurrentSpeed] = useState(0); // Velocità in km/h
+  const [speedLimit, setSpeedLimit] = useState(null); // Limite di velocità della strada
+  const lastSpeedCheckRef = useRef(null); // Ultima posizione per cui abbiamo controllato il limite
+  
+  // Funzione per ottenere il limite di velocità dalla strada (Overpass API)
+  const fetchSpeedLimit = async (lat, lon) => {
+    try {
+      // Evita di fare troppe richieste - controlla solo se ci siamo spostati di almeno 50m
+      if (lastSpeedCheckRef.current) {
+        const distance = Math.sqrt(
+          Math.pow((lat - lastSpeedCheckRef.current.lat) * 111000, 2) +
+          Math.pow((lon - lastSpeedCheckRef.current.lon) * 111000, 2)
+        );
+        if (distance < 50) return; // Meno di 50m, non ricontrolla
+      }
+      
+      lastSpeedCheckRef.current = { lat, lon };
+      
+      const query = `
+        [out:json];
+        way(around:30,${lat},${lon})["highway"]["maxspeed"];
+        out tags;
+      `;
+      
+      const response = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        body: query
+      });
+      
+      const data = await response.json();
+      
+      if (data.elements && data.elements.length > 0) {
+        const maxspeed = data.elements[0].tags.maxspeed;
+        // Parsing del limite (può essere "50", "50 km/h", "IT:urban", etc.)
+        let limit = null;
+        if (maxspeed) {
+          if (maxspeed === 'IT:urban') limit = 50;
+          else if (maxspeed === 'IT:rural') limit = 90;
+          else if (maxspeed === 'IT:motorway') limit = 130;
+          else {
+            const parsed = parseInt(maxspeed);
+            if (!isNaN(parsed)) limit = parsed;
+          }
+        }
+        setSpeedLimit(limit);
+        console.log('🚦 Limite velocità rilevato:', limit, 'km/h');
+      } else {
+        console.log('⚠️ Nessun limite velocità trovato per questa strada');
+        setSpeedLimit(null);
+      }
+    } catch (error) {
+      console.error('Errore recupero limite velocità:', error);
+    }
+  };
   
   // Funzione per richiedere GPS (serve user gesture su iOS)
   const requestGPS = () => {
@@ -125,6 +179,13 @@ function App() {
           const pos = [position.coords.latitude, position.coords.longitude];
           setCurrentPosition(pos);
           setRoute(prev => [...prev, pos]);
+          
+          // Aggiorna velocità (converti da m/s a km/h)
+          const speedKmh = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0;
+          setCurrentSpeed(speedKmh);
+          
+          // Rileva limite di velocità della strada
+          fetchSpeedLimit(position.coords.latitude, position.coords.longitude);
           
           // Invia punto GPS al backend
           if (sessionIdRef.current) {
@@ -490,6 +551,40 @@ function App() {
               <MapController position={currentPosition} />
             </MapContainer>
             
+            {/* Indicatore velocità */}
+            {gpsReady && sessionActive && (
+              <div style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: (() => {
+                  if (speedLimit && currentSpeed > speedLimit) return 'rgba(239, 68, 68, 0.95)'; // Rosso se supera il limite
+                  if (speedLimit && currentSpeed > speedLimit - 5) return 'rgba(245, 158, 11, 0.95)'; // Arancione se vicino al limite
+                  return 'rgba(16, 185, 129, 0.95)'; // Verde altrimenti
+                })(),
+                color: 'white',
+                padding: '15px 20px',
+                borderRadius: '12px',
+                zIndex: 1000,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                textAlign: 'center',
+                minWidth: '120px',
+                fontWeight: 'bold'
+              }}>
+                <div style={{ fontSize: '0.7rem', marginBottom: '5px', opacity: 0.9 }}>VELOCITÀ</div>
+                <div style={{ fontSize: '2rem', lineHeight: '1' }}>
+                  {currentSpeed}
+                  {speedLimit && (
+                    <span style={{ fontSize: '1.2rem', opacity: 0.7 }}> / {speedLimit}</span>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.8rem', marginTop: '2px' }}>km/h</div>
+                {!speedLimit && (
+                  <div style={{ fontSize: '0.6rem', marginTop: '5px', opacity: 0.6 }}>Rilevamento limite...</div>
+                )}
+              </div>
+            )}
+            
             {!gpsReady && (
               <div style={{
                 position: 'absolute',
@@ -561,6 +656,23 @@ function App() {
             className="btn-event btn-error"
           >
             🚗 Distanza
+          </button>
+          <button 
+            onClick={() => {
+              if (speedLimit) {
+                reportEvent('eccesso_velocita', `Eccesso di velocità: ${currentSpeed} km/h (limite: ${speedLimit} km/h)`);
+              } else {
+                reportEvent('eccesso_velocita', `Eccesso di velocità: ${currentSpeed} km/h`);
+              }
+            }}
+            className="btn-event btn-error"
+            disabled={currentSpeed === 0}
+            style={{ 
+              opacity: currentSpeed === 0 ? 0.5 : 1,
+              cursor: currentSpeed === 0 ? 'not-allowed' : 'pointer'
+            }}
+          >
+            🚨 Eccesso Velocità
           </button>
           <button 
             onClick={() => reportEvent('manovra_corretta', 'Manovra eseguita bene')}
