@@ -361,8 +361,7 @@ function App() {
                 {/* Marker inizio */}
                 <Marker position={[sessionDetails.gps_points[0].lat, sessionDetails.gps_points[0].lon]}>
                   <Popup>
-                    <strong>🚀 Inizio</strong><br />
-                    {formatDate(sessionDetails.gps_points[0].timestamp)}
+                    <strong>🚀 Inizio</strong>
                   </Popup>
                 </Marker>
                 
@@ -375,8 +374,7 @@ function App() {
                     ]}
                   >
                     <Popup>
-                      <strong>🏁 Fine</strong><br />
-                      {formatDate(sessionDetails.gps_points[sessionDetails.gps_points.length - 1].timestamp)}
+                      <strong>🏁 Fine</strong>
                     </Popup>
                   </Marker>
                 )}
