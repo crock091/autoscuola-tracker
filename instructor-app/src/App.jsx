@@ -73,6 +73,7 @@ function App() {
   const [gpsError, setGpsError] = useState(null);
   const [historySidebarOpen, setHistorySidebarOpen] = useState(true); // Sidebar history sempre visibile all'inizio
   const [selectedEventLocation, setSelectedEventLocation] = useState(null);
+  const [highlightedEventId, setHighlightedEventId] = useState(null); // ID evento evidenziato
   const [currentSpeed, setCurrentSpeed] = useState(0); // Velocità in km/h
   const [speedLimit, setSpeedLimit] = useState(null); // Limite di velocità della strada
   const lastSpeedCheckRef = useRef(null); // Ultima posizione per cui abbiamo controllato il limite
@@ -782,19 +783,36 @@ function App() {
                           weight={4}
                         />
                       )}
-                      {pastEvents.map((event, idx) => (
-                        <Marker 
-                          key={idx} 
-                          position={[event.lat, event.lon]}
-                          icon={event.tipo === 'manovra_corretta' ? successIcon : errorIcon}
-                        >
-                          <Popup>
-                            <strong>{event.tipo}</strong><br/>
-                            {event.descrizione}<br/>
-                            {new Date(event.timestamp).toLocaleString()}
-                          </Popup>
-                        </Marker>
-                      ))}
+                      {pastEvents.map((event, idx) => {
+                        const isHighlighted = highlightedEventId === event.id;
+                        const markerIcon = event.tipo === 'manovra_corretta' ? successIcon : errorIcon;
+                        
+                        // Crea icona con classe CSS per animazione
+                        const icon = L.divIcon({
+                          html: `<div class="${isHighlighted ? 'highlighted-marker' : ''}" style="position: relative;">
+                                  <img src="${markerIcon.options.iconUrl}" 
+                                       style="width: 25px; height: 41px; margin-left: -12px; margin-top: -41px;" />
+                                </div>`,
+                          iconSize: [25, 41],
+                          iconAnchor: [12, 41],
+                          popupAnchor: [1, -34],
+                          className: ''
+                        });
+                        
+                        return (
+                          <Marker 
+                            key={idx} 
+                            position={[event.lat, event.lon]}
+                            icon={isHighlighted ? icon : markerIcon}
+                          >
+                            <Popup>
+                              <strong>{event.tipo}</strong><br/>
+                              {event.descrizione}<br/>
+                              {new Date(event.timestamp).toLocaleString()}
+                            </Popup>
+                          </Marker>
+                        );
+                      })}
                     </MapContainer>
                   </div>
                   
@@ -807,7 +825,11 @@ function App() {
                           <div 
                             key={idx}
                             className={`event-item ${event.tipo === 'manovra_corretta' ? 'success' : 'error'}`}
-                            onClick={() => setSelectedEventLocation([event.lat, event.lon])}
+                            onClick={() => {
+                              setSelectedEventLocation([event.lat, event.lon]);
+                              setHighlightedEventId(event.id);
+                              setTimeout(() => setHighlightedEventId(null), 3000);
+                            }}
                             style={{ cursor: 'pointer' }}
                           >
                             <div className="event-icon">
@@ -845,7 +867,11 @@ function App() {
                 {pastEvents.map((event, idx) => (
                   <div 
                     key={idx}
-                    onClick={() => setSelectedEventLocation([event.lat, event.lon])}
+                    onClick={() => {
+                      setSelectedEventLocation([event.lat, event.lon]);
+                      setHighlightedEventId(event.id);
+                      setTimeout(() => setHighlightedEventId(null), 3000);
+                    }}
                     style={{
                       padding: '12px',
                       marginBottom: '10px',

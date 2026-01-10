@@ -61,6 +61,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(true); // Sidebar visibile all'avvio
   const [selectedEventLocation, setSelectedEventLocation] = useState(null);
+  const [highlightedEventId, setHighlightedEventId] = useState(null); // ID evento evidenziato
   
   // Carica sessioni all'avvio
   useEffect(() => {
@@ -350,21 +351,38 @@ function App() {
                 )}
                 
                 {/* Marker eventi */}
-                {events.map(event => (
-                  <Marker
-                    key={event.id}
-                    position={[event.lat, event.lon]}
-                    icon={getEventIcon(event.tipo)}
-                  >
-                    <Popup>
-                      <div className="event-popup">
-                        <strong>{getEventLabel(event.tipo)}</strong><br />
-                        {event.descrizione && <span>{event.descrizione}<br /></span>}
-                        <small>{formatDate(event.timestamp)}</small>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
+                {events.map(event => {
+                  const isHighlighted = highlightedEventId === event.id;
+                  const markerIcon = getEventIcon(event.tipo);
+                  
+                  // Crea icona con classe CSS per animazione
+                  const icon = L.divIcon({
+                    html: `<div class="${isHighlighted ? 'highlighted-marker' : ''}" style="position: relative;">
+                            <img src="${markerIcon.options.iconUrl}" 
+                                 style="width: 25px; height: 41px; margin-left: -12px; margin-top: -41px;" />
+                          </div>`,
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    className: ''
+                  });
+                  
+                  return (
+                    <Marker
+                      key={event.id}
+                      position={[event.lat, event.lon]}
+                      icon={isHighlighted ? icon : markerIcon}
+                    >
+                      <Popup>
+                        <div className="event-popup">
+                          <strong>{getEventLabel(event.tipo)}</strong><br />
+                          {event.descrizione && <span>{event.descrizione}<br /></span>}
+                          <small>{formatDate(event.timestamp)}</small>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
               </MapContainer>
             </div>
             
@@ -377,7 +395,11 @@ function App() {
                     <div 
                       key={event.id} 
                       className={`event-item ${event.tipo === 'manovra_corretta' ? 'success' : 'error'}`}
-                      onClick={() => setSelectedEventLocation([event.lat, event.lon])}
+                      onClick={() => {
+                        setSelectedEventLocation([event.lat, event.lon]);
+                        setHighlightedEventId(event.id);
+                        setTimeout(() => setHighlightedEventId(null), 3000);
+                      }}
                       style={{ cursor: 'pointer' }}
                     >
                       <div className="event-icon">
