@@ -53,6 +53,7 @@ def parse_dashcam_filename(filename):
     Supporta formati comuni: 
     - YYYY-MM-DD_HH-MM-SS.mp4
     - YYYYMMDD_HHMMSS.mp4
+    - YYYYMMDDHHMMSS.mp4
     - YYYY_MM_DD_HH_MM_SS.mp4
     
     Modifica questa funzione in base al formato della TUA dashcam!
@@ -61,7 +62,11 @@ def parse_dashcam_filename(filename):
         # Rimuovi estensione
         name = Path(filename).stem
         
-        # Prova formato: 2026-01-10_15-30-00
+        # Prova formato: YYYYMMDDHHMMSS (14 cifre)
+        if name.isdigit() and len(name) == 14:
+            return datetime.strptime(name, '%Y%m%d%H%M%S')
+        
+        # Prova formato: YYYY-MM-DD_HH-MM-SS
         if '_' in name and '-' in name:
             date_part, time_part = name.split('_', 1)
             date_str = date_part.replace('-', '')
@@ -77,7 +82,7 @@ def parse_dashcam_filename(filename):
 def find_video_file(video_dir, target_time):
     """
     Trova il file video che contiene il timestamp target.
-    Assume che i video durino circa 15 minuti.
+    Gestisce video di qualsiasi durata (3-20 minuti).
     """
     video_files = []
     
@@ -92,15 +97,15 @@ def find_video_file(video_dir, target_time):
     
     # Trova il video che contiene il target_time
     for i, (filename, start_time) in enumerate(video_files):
-        # Assumi durata video ~15 minuti (900 secondi)
-        # Verifica anche il video successivo per avere margine
+        # Verifica se il target è dopo questo video ma prima del successivo
         if i + 1 < len(video_files):
             next_start = video_files[i + 1][1]
+            # Se target è tra start e next_start, è in questo video
             if start_time <= target_time < next_start:
                 return filename, start_time
         else:
-            # Ultimo video - controlla se è entro 20 minuti
-            if start_time <= target_time <= start_time + timedelta(minutes=20):
+            # Ultimo video - accetta se entro 30 minuti (margine di sicurezza)
+            if start_time <= target_time <= start_time + timedelta(minutes=30):
                 return filename, start_time
     
     return None, None
@@ -219,6 +224,10 @@ def main():
         
         # Rimuovi timezone per confronto
         event_time_naive = event_time.replace(tzinfo=None)
+        
+        # IMPORTANTE: Il DB salva in UTC, i video dashcam in ora locale italiana (UTC+1)
+        # Aggiungi 1 ora per convertire da UTC a ora italiana
+        event_time_naive = event_time_naive + timedelta(hours=1)
         
         tipo = format_event_type(event['tipo'])
         print(f"[{i}/{len(events)}] {tipo} alle {event_time.strftime('%H:%M:%S')}", end=' ')
