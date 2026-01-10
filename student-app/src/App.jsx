@@ -183,6 +183,15 @@ function App() {
     });
   };
   
+  const formatDateOnly = (dateString) => {
+    const date = new Date(new Date(dateString).getTime() + 60*60*1000);
+    return date.toLocaleDateString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+  
   const formatSessionDate = (session) => {
     // Converti da UTC a ora italiana (+1 ora)
     const inizioDate = new Date(new Date(session.inizio).getTime() + 60*60*1000);
@@ -361,7 +370,8 @@ function App() {
                 {/* Marker inizio */}
                 <Marker position={[sessionDetails.gps_points[0].lat, sessionDetails.gps_points[0].lon]}>
                   <Popup>
-                    <strong>🚀 Inizio</strong>
+                    <strong>🚀 Inizio</strong><br />
+                    {formatDateOnly(sessionDetails.gps_points[0].timestamp)}
                   </Popup>
                 </Marker>
                 
@@ -374,7 +384,8 @@ function App() {
                     ]}
                   >
                     <Popup>
-                      <strong>🏁 Fine</strong>
+                      <strong>🏁 Fine</strong><br />
+                      {formatDateOnly(sessionDetails.gps_points[sessionDetails.gps_points.length - 1].timestamp)}
                     </Popup>
                   </Marker>
                 )}
