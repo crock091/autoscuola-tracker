@@ -3,7 +3,7 @@ chcp 65001 >nul
 title Video Clip Extractor - Autoscuola Tracker
 
 REM Aggiungi FFmpeg al PATH temporaneamente
-set "PATH=C:\ffmpeg\ffmpeg-master-latest-win64-gpl-shared\bin;%PATH%"
+set "PATH=C:\Users\crock\Desktop\ffmpeg-master-latest-win64-gpl-shared\bin;%PATH%"
 
 REM Vai nella cartella dello script
 cd /d "%~dp0"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script per estrarre clip video dalla dashcam basandosi sugli eventi registrati.
-Estrae 30 secondi prima e 30 secondi dopo ogni evento.
+Estrae 50 secondi prima e 10 secondi dopo ogni evento.
 Carica automaticamente i video su Supabase Storage.
 """
 
@@ -126,10 +126,10 @@ def extract_clip(video_path, output_path, offset_seconds, duration=60):
         video_path: Percorso del video sorgente
         output_path: Percorso del video di output
         offset_seconds: Secondi dall'inizio del video
-        duration: Durata della clip in secondi (default 60 = 30 prima + 30 dopo)
+        duration: Durata della clip in secondi (default 60 = 50 prima + 10 dopo)
     """
-    # Calcola il punto di inizio (30 secondi prima dell'evento)
-    start = max(0, offset_seconds - 30)
+    # Calcola il punto di inizio (50 secondi prima dell'evento)
+    start = max(0, offset_seconds - 50)
     
     cmd = [
         'ffmpeg',
@@ -183,13 +183,14 @@ def upload_to_supabase(file_path, bucket='driving-videos'):
         with open(file_path, 'rb') as f:
             file_content = f.read()
         
-        # Upload su Supabase Storage
+        # Upload su Supabase Storage con upsert per sovrascrivere se esiste
         upload_url = f"{STORAGE_URL}/object/{bucket}/{filename}"
         upload_response = requests.post(
             upload_url,
             headers={
                 **headers,
-                'Content-Type': 'video/mp4'
+                'Content-Type': 'video/mp4',
+                'x-upsert': 'true'  # Sovrascrivi se il file esiste già
             },
             data=file_content
         )

@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-set "PATH=C:\ffmpeg\ffmpeg-master-latest-win64-gpl-shared\bin;%PATH%"
+set "PATH=C:\Users\crock\Desktop\ffmpeg-master-latest-win64-gpl-shared\bin;%PATH%"
 
 echo ============================================================
 echo    Video Clip Extractor - Auto Mode
