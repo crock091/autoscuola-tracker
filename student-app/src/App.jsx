@@ -443,10 +443,26 @@ function App() {
               <div className="events-panel">
                 <h3>Eventi registrati</h3>
                 <div className="events-list">
-                  {events.map(event => (
+                  {events.map(event => {
+                    const isStartEnd = event.tipo === 'inizio_guida' || event.tipo === 'fine_guida';
+                    
+                    // Classe CSS e icona in base al tipo
+                    let cssClass, icon;
+                    if (isStartEnd) {
+                      cssClass = 'info'; // blu per inizio/fine
+                      icon = '🔵';
+                    } else if (event.tipo === 'manovra_corretta') {
+                      cssClass = 'success'; // verde
+                      icon = '✓';
+                    } else {
+                      cssClass = 'error'; // rosso
+                      icon = '❌';
+                    }
+                    
+                    return (
                     <div 
                       key={event.id} 
-                      className={`event-item ${event.tipo === 'manovra_corretta' ? 'success' : 'error'}`}
+                      className={`event-item ${cssClass}`}
                       onClick={() => {
                         setSelectedEventLocation([event.lat, event.lon]);
                         setHighlightedEventId(event.id);
@@ -455,7 +471,7 @@ function App() {
                       style={{ cursor: 'pointer' }}
                     >
                       <div className="event-icon">
-                        {event.tipo === 'manovra_corretta' ? '✓' : '❌'}
+                        {icon}
                       </div>
                       <div className="event-content">
                         <div className="event-title">{getEventLabel(event.tipo)}</div>
@@ -488,7 +504,8 @@ function App() {
                         )}
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               </div>
             )}

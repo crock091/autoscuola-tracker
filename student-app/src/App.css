@@ -189,6 +189,11 @@
   border-left: 4px solid #10b981;
 }
 
+.event-item.info {
+  background: #dbeafe;
+  border-left: 4px solid #2563eb;
+}
+
 .event-item:hover {
   transform: translateX(4px);
 }
