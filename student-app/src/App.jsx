@@ -44,6 +44,15 @@ const successIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const blueIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 const API_URL = 'https://wokjywwzgyrgkiriyvyj.supabase.co/rest/v1';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indva2p5d3d6Z3lyZ2tpcml5dnlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NDQzNzMsImV4cCI6MjA4MzUyMDM3M30.o6UVvuR3yOfyhG00-0FUsz6V6vC_qSzPG44TrEMCKA4';
 
@@ -212,6 +221,9 @@ function App() {
   };
   
   const getEventIcon = (tipo) => {
+    if (tipo === 'inizio_guida' || tipo === 'fine_guida') {
+      return blueIcon;
+    }
     return tipo === 'manovra_corretta' ? successIcon : errorIcon;
   };
   
