@@ -100,10 +100,33 @@ function App() {
         out tags;
       `;
       
+      // Timeout di 5 secondi per la richiesta
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
       const response = await fetch('https://overpass-api.de/api/interpreter', {
         method: 'POST',
-        body: query
+        body: query,
+        headers: {
+          'Content-Type': 'text/plain'
+        },
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
+      
+      // Verifica se la risposta è OK prima di parsare
+      if (!response.ok) {
+        console.warn('Overpass API errore:', response.status, response.statusText);
+        return;
+      }
+      
+      // Verifica che la risposta sia JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn('Overpass API ha ritornato un formato non-JSON');
+        return;
+      }
       
       const data = await response.json();
       
@@ -127,7 +150,16 @@ function App() {
         setSpeedLimit(null);
       }
     } catch (error) {
-      console.error('Errore recupero limite velocità:', error);
+      // Gestione specifica degli errori
+      if (error.name === 'AbortError') {
+        console.warn('⏱️ Timeout recupero limite velocità (richiesta annullata dopo 5s)');
+      } else if (error instanceof SyntaxError) {
+        console.error('❌ Errore parsing risposta Overpass API (formato non valido):', error.message);
+      } else {
+        console.error('❌ Errore recupero limite velocità:', error.message);
+      }
+      // Non bloccare l'app, continua senza limite di velocità
+      setSpeedLimit(null);
     }
   };
   
@@ -409,14 +441,27 @@ function App() {
         gps_points: gpsPoints.map(p => ({ ...p, timestamp: p.ts }))
       });
       
-      // Carica eventi
-      const eventsResponse = await fetch(`${API_URL}/rpc/get_events`, {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: JSON.stringify({ p_session_id: sessionId })
+      // Carica eventi direttamente dalla tabella (senza RPC che potrebbe filtrare)
+      const eventsResponse = await fetch(`${API_URL}/events?session_id=eq.${sessionId}&order=timestamp.asc`, {
+        headers: supabaseHeaders
       });
       const events = await eventsResponse.json();
-      setPastEvents(events.map(e => ({ ...e, timestamp: e.ts })));
+      
+      // Trasforma i dati: estrai lat/lon da location e usa timestamp direttamente
+      const eventsFormatted = events.map(e => {
+        // location è nel formato "POINT(lon lat)" - lo convertiamo
+        const match = e.location?.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
+        if (match) {
+          return {
+            ...e,
+            lon: parseFloat(match[1]),
+            lat: parseFloat(match[2])
+          };
+        }
+        return e;
+      });
+      
+      setPastEvents(eventsFormatted);
     } catch (error) {
       console.error('Errore caricamento dettagli:', error);
     }
