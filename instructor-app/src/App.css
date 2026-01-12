@@ -338,11 +338,21 @@
 
 /* History view sidebar styles (come student-app) */
 .history-sidebar {
-  width: 100%;
+  width: 300px;
   background: white;
   border-right: 1px solid #e5e7eb;
   overflow-y: auto;
-  transition: width 0.3s, padding 0.3s;
+  transition: all 0.3s ease;
+  position: fixed;
+  left: 0;
+  top: 60px;
+  bottom: 0;
+  z-index: 1000;
+  transform: translateX(-100%);
+}
+
+.history-sidebar.open {
+  transform: translateX(0);
 }
 
 .history-sidebar.collapsed {
@@ -478,6 +488,11 @@
 .event-item.success {
   background: #d1fae5;
   border-left: 4px solid #10b981;
+}
+
+.event-item.info {
+  background: #dbeafe;
+  border-left: 4px solid #2563eb;
 }
 
 .event-item:hover {

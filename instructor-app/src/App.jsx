@@ -41,6 +41,15 @@ const successIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+const blueIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 // Componente per centrare la mappa sulla posizione corrente o su eventi
 function MapController({ center, zoom, position }) {
   const map = useMap();
@@ -71,7 +80,7 @@ function App() {
   const [gpsReady, setGpsReady] = useState(false);
   const [gpsRequested, setGpsRequested] = useState(false);
   const [gpsError, setGpsError] = useState(null);
-  const [historySidebarOpen, setHistorySidebarOpen] = useState(true); // Sidebar history sempre visibile all'inizio
+  const [historySidebarOpen, setHistorySidebarOpen] = useState(true); // Sidebar aperta all'inizio per vedere le guide
   const [selectedEventLocation, setSelectedEventLocation] = useState(null);
   const [highlightedEventId, setHighlightedEventId] = useState(null); // ID evento evidenziato
   const [currentSpeed, setCurrentSpeed] = useState(0); // Velocità in km/h
@@ -302,6 +311,22 @@ function App() {
       sessionIdRef.current = newSessionId;
       setSessionActive(true);
       setRoute([]);
+      
+      // Registra evento inizio guida
+      if (currentPosition) {
+        await fetch(`${API_URL}/events`, {
+          method: 'POST',
+          headers: supabaseHeaders,
+          body: JSON.stringify({
+            session_id: newSessionId,
+            tipo: 'inizio_guida',
+            descrizione: 'Inizio della guida',
+            location: `POINT(${currentPosition[1]} ${currentPosition[0]})`,
+            timestamp: new Date().toISOString()
+          })
+        });
+      }
+      
       startTracking();
       alert(`✅ Guida iniziata! ID sessione: ${newSessionId}`);
     } catch (error) {
@@ -313,6 +338,21 @@ function App() {
   // Termina sessione
   const endSession = async () => {
     try {
+      // Registra evento fine guida prima di terminare
+      if (currentPosition && sessionId) {
+        await fetch(`${API_URL}/events`, {
+          method: 'POST',
+          headers: supabaseHeaders,
+          body: JSON.stringify({
+            session_id: sessionId,
+            tipo: 'fine_guida',
+            descrizione: 'Fine della guida',
+            location: `POINT(${currentPosition[1]} ${currentPosition[0]})`,
+            timestamp: new Date().toISOString()
+          })
+        });
+      }
+      
       await fetch(`${API_URL}/sessions?id=eq.${sessionId}`, {
         method: 'PATCH',
         headers: supabaseHeaders,
@@ -441,27 +481,14 @@ function App() {
         gps_points: gpsPoints.map(p => ({ ...p, timestamp: p.ts }))
       });
       
-      // Carica eventi direttamente dalla tabella (senza RPC che potrebbe filtrare)
-      const eventsResponse = await fetch(`${API_URL}/events?session_id=eq.${sessionId}&order=timestamp.asc`, {
-        headers: supabaseHeaders
+      // Carica eventi con la RPC normale
+      const eventsResponse = await fetch(`${API_URL}/rpc/get_events`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({ p_session_id: sessionId })
       });
       const events = await eventsResponse.json();
-      
-      // Trasforma i dati: estrai lat/lon da location e usa timestamp direttamente
-      const eventsFormatted = events.map(e => {
-        // location è nel formato "POINT(lon lat)" - lo convertiamo
-        const match = e.location?.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/);
-        if (match) {
-          return {
-            ...e,
-            lon: parseFloat(match[1]),
-            lat: parseFloat(match[2])
-          };
-        }
-        return e;
-      });
-      
-      setPastEvents(eventsFormatted);
+      setPastEvents(events.map(e => ({ ...e, timestamp: e.ts })));
     } catch (error) {
       console.error('Errore caricamento dettagli:', error);
     }
@@ -724,14 +751,8 @@ function App() {
         </>
       ) : (
         <>
-          {/* Overlay per chiudere sidebar su mobile */}
-          <div 
-            className={`history-overlay ${historySidebarOpen ? 'visible' : ''}`}
-            onClick={() => setHistorySidebarOpen(false)}
-          />
-          
-          {/* Hamburger menu (visibile solo quando session selezionata e sidebar chiusa) */}
-          {selectedPastSession && !historySidebarOpen && (
+          {/* Hamburger menu (visibile sempre quando sidebar chiusa) */}
+          {!historySidebarOpen && (
             <button 
               className="history-toggle"
               onClick={() => setHistorySidebarOpen(true)}>
@@ -742,7 +763,28 @@ function App() {
           {/* Sidebar con guide passate */}
           <div className={`history-sidebar ${historySidebarOpen ? 'open' : ''}`}>
             <div style={{ padding: '20px' }}>
-              <h3 style={{ marginTop: 0 }}>Guide Passate</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0 }}>Guide Passate</h3>
+                <button 
+                  onClick={() => setHistorySidebarOpen(false)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '1.5rem',
+                    cursor: 'pointer',
+                    color: '#666',
+                    padding: '0',
+                    width: '30px',
+                    height: '30px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Chiudi"
+                >
+                  ✕
+                </button>
+              </div>
               {pastSessions.map(session => (
                 <div 
                   key={session.id}
@@ -823,7 +865,15 @@ function App() {
                       )}
                       {pastEvents.map((event, idx) => {
                         const isHighlighted = highlightedEventId === event.id;
-                        const markerIcon = event.tipo === 'manovra_corretta' ? successIcon : errorIcon;
+                        const isStartEnd = event.tipo === 'inizio_guida' || event.tipo === 'fine_guida';
+                        
+                        // Seleziona icona: blu per inizio/fine, verde per manovre corrette, rossa per errori
+                        let markerIcon;
+                        if (isStartEnd) {
+                          markerIcon = blueIcon;
+                        } else {
+                          markerIcon = event.tipo === 'manovra_corretta' ? successIcon : errorIcon;
+                        }
                         
                         // Crea icona con classe CSS per animazione
                         const icon = L.divIcon({
@@ -837,6 +887,22 @@ function App() {
                           className: ''
                         });
                         
+                        // Formatta data: per inizio/fine mostra solo data, per altri eventi data e ora
+                        const eventDate = new Date(new Date(event.timestamp).getTime() + 60*60*1000);
+                        const formattedDate = isStartEnd 
+                          ? eventDate.toLocaleDateString('it-IT', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })
+                          : eventDate.toLocaleString('it-IT', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            });
+                        
                         return (
                           <Marker 
                             key={idx} 
@@ -844,15 +910,9 @@ function App() {
                             icon={isHighlighted ? icon : markerIcon}
                           >
                             <Popup>
-                              <strong>{event.tipo}</strong><br/>
+                              <strong>{event.tipo.replace(/_/g, ' ').toUpperCase()}</strong><br/>
                               {event.descrizione}<br/>
-                              {new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleString('it-IT', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
+                              {formattedDate}
                             </Popup>
                           </Marker>
                         );
@@ -865,10 +925,34 @@ function App() {
                     <div className="events-panel">
                       <h3>Eventi registrati ({pastEvents.length})</h3>
                       <div className="events-list">
-                        {pastEvents.map((event, idx) => (
+                        {pastEvents.map((event, idx) => {
+                          const isStartEnd = event.tipo === 'inizio_guida' || event.tipo === 'fine_guida';
+                          const eventDate = new Date(new Date(event.timestamp).getTime() + 60*60*1000);
+                          const formattedTime = isStartEnd 
+                            ? eventDate.toLocaleDateString('it-IT', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })
+                            : eventDate.toLocaleTimeString('it-IT');
+                          
+                          // Classe CSS e icona in base al tipo
+                          let cssClass, icon;
+                          if (isStartEnd) {
+                            cssClass = 'info'; // blu per inizio/fine
+                            icon = '🔵';
+                          } else if (event.tipo === 'manovra_corretta') {
+                            cssClass = 'success'; // verde
+                            icon = '✓';
+                          } else {
+                            cssClass = 'error'; // rosso
+                            icon = '❌';
+                          }
+                          
+                          return (
                           <div 
                             key={idx}
-                            className={`event-item ${event.tipo === 'manovra_corretta' ? 'success' : 'error'}`}
+                            className={`event-item ${cssClass}`}
                             onClick={() => {
                               setSelectedEventLocation([event.lat, event.lon]);
                               setHighlightedEventId(event.id);
@@ -877,11 +961,11 @@ function App() {
                             style={{ cursor: 'pointer' }}
                           >
                             <div className="event-icon">
-                              {event.tipo === 'manovra_corretta' ? '✓' : '❌'}
+                              {icon}
                             </div>
                             <div className="event-content">
                               <div className="event-title">{event.tipo.replace(/_/g, ' ').toUpperCase()}</div>
-                              <div className="event-time">{new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleTimeString('it-IT')}</div>
+                              <div className="event-time">{formattedTime}</div>
                               {event.video_url && (
                                 <button
                                   className="video-badge"
@@ -910,7 +994,8 @@ function App() {
                               )}
                             </div>
                           </div>
-                        ))}
+                        );
+                        })}
                       </div>
                     </div>
                   )}
@@ -934,7 +1019,37 @@ function App() {
                 backgroundColor: '#f9f9f9'
               }}>
                 <h3 style={{ marginTop: '15px' }}>Eventi Segnalati ({pastEvents.length})</h3>
-                {pastEvents.map((event, idx) => (
+                {pastEvents.map((event, idx) => {
+                  const isStartEnd = event.tipo === 'inizio_guida' || event.tipo === 'fine_guida';
+                  const eventDate = new Date(new Date(event.timestamp).getTime() + 60*60*1000);
+                  const formattedTime = isStartEnd 
+                    ? eventDate.toLocaleDateString('it-IT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })
+                    : eventDate.toLocaleTimeString('it-IT');
+                  
+                  // Colori per inizio/fine guida (blu), manovre corrette (verde), errori (rosso)
+                  let bgColor, borderColor, textColor, icon;
+                  if (isStartEnd) {
+                    bgColor = '#e3f2fd';
+                    borderColor = '#2196f3';
+                    textColor = '#1565c0';
+                    icon = '🔵';
+                  } else if (event.tipo === 'manovra_corretta') {
+                    bgColor = '#e8f5e9';
+                    borderColor = '#4caf50';
+                    textColor = '#2e7d32';
+                    icon = '✅';
+                  } else {
+                    bgColor = '#ffebee';
+                    borderColor = '#f44336';
+                    textColor = '#c62828';
+                    icon = '⚠️';
+                  }
+                  
+                  return (
                   <div 
                     key={idx}
                     onClick={() => {
@@ -945,23 +1060,23 @@ function App() {
                     style={{
                       padding: '12px',
                       marginBottom: '10px',
-                      backgroundColor: event.tipo === 'manovra_corretta' ? '#e8f5e9' : '#ffebee',
-                      border: `2px solid ${event.tipo === 'manovra_corretta' ? '#4caf50' : '#f44336'}`,
+                      backgroundColor: bgColor,
+                      border: `2px solid ${borderColor}`,
                       borderRadius: '8px',
                       cursor: 'pointer'
                     }}>
                     <div style={{ 
                       fontWeight: 'bold', 
                       marginBottom: '5px',
-                      color: event.tipo === 'manovra_corretta' ? '#2e7d32' : '#c62828'
+                      color: textColor
                     }}>
-                      {event.tipo === 'manovra_corretta' ? '✅' : '⚠️'} {event.tipo.replace(/_/g, ' ').toUpperCase()}
+                      {icon} {event.tipo.replace(/_/g, ' ').toUpperCase()}
                     </div>
                     <div style={{ fontSize: '0.9em', marginBottom: '5px' }}>
                       {event.descrizione}
                     </div>
                     <div style={{ fontSize: '0.8em', color: '#666' }}>
-                      {new Date(new Date(event.timestamp).getTime() + 60*60*1000).toLocaleTimeString('it-IT')}
+                      {formattedTime}
                     </div>
                     {event.video_url && (
                       <button
@@ -987,7 +1102,8 @@ function App() {
                       </button>
                     )}
                   </div>
-                ))}
+                );
+                })}
               </div>
             )}
           </div>
