@@ -996,15 +996,16 @@ function App() {
                 <>
                   <div className="map-wrapper">
                     <MapContainer 
-                      center={pastSessionDetails.gps_points[0] ? [pastSessionDetails.gps_points[0].lat, pastSessionDetails.gps_points[0].lon] : [45.4642, 9.1900]}
+                      center={pastSessionDetails.gps_points && pastSessionDetails.gps_points.length > 0 ? [pastSessionDetails.gps_points[0].lat, pastSessionDetails.gps_points[0].lon] : [45.4642, 9.1900]}
                       zoom={15} 
-                      style={{ height: '100%', width: '100%' }}>
+                      style={{ height: '100%', width: '100%' }}
+                      key={selectedPastSession}>
                       <MapController center={selectedEventLocation} zoom={17} />
                       <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         attribution='&copy; OpenStreetMap contributors'
                       />
-                      {pastSessionDetails.gps_points.length > 0 && (
+                      {pastSessionDetails.gps_points && pastSessionDetails.gps_points.length > 0 && (
                         <Polyline 
                           positions={pastSessionDetails.gps_points.map(p => [p.lat, p.lon])}
                           color="blue"
