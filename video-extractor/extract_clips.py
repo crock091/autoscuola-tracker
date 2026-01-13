@@ -16,6 +16,13 @@ from dotenv import load_dotenv
 # Carica variabili ambiente
 load_dotenv()
 
+# Aggiungi ffmpeg al PATH se esiste nella cartella locale
+script_dir = Path(__file__).parent
+local_ffmpeg = script_dir / 'ffmpeg' / 'bin'
+if local_ffmpeg.exists():
+    os.environ['PATH'] = str(local_ffmpeg) + os.pathsep + os.environ['PATH']
+    print(f"✓ Usando ffmpeg locale: {local_ffmpeg}")
+
 # Configurazione Supabase
 API_URL = os.getenv('SUPABASE_URL', 'https://wokjywwzgyrgkiriyvyj.supabase.co') + '/rest/v1'
 STORAGE_URL = os.getenv('SUPABASE_URL', 'https://wokjywwzgyrgkiriyvyj.supabase.co') + '/storage/v1'
@@ -37,6 +44,18 @@ def check_ffmpeg():
         print("❌ FFmpeg non trovato!")
         print("   Scaricalo da: https://ffmpeg.org/download.html")
         return False
+    except OSError as e:
+        if e.winerror == 4551:
+            print("❌ Windows ha bloccato l'esecuzione di FFmpeg!")
+            print("\n🔧 SOLUZIONE:")
+            print("   1. Apri 'Sicurezza di Windows' -> 'Controllo delle app e del browser'")
+            print("   2. Clicca su 'Impostazioni protezione basata sulla reputazione'")
+            print("   3. Disattiva temporaneamente 'Verifica app e file' o 'App potenzialmente indesiderate'")
+            print("   4. Oppure: Scarica ffmpeg da https://github.com/BtbN/FFmpeg-Builds/releases")
+            print("      e assicurati di 'sbloccare' il file zip prima di estrarlo")
+            print("      (tasto destro sul file zip -> Proprietà -> Sblocca)\n")
+            return False
+        raise
 
 def get_sessions():
     """Recupera le sessioni dal database"""
@@ -137,10 +156,10 @@ def extract_clip(video_path, output_path, offset_seconds, duration=60):
         '-ss', str(start),
         '-t', str(duration),
         '-vcodec', 'libx264',  # Re-encode per comprimere
-        '-crf', '30',  # Qualità aumentata per ridurre dimensione (era 28)
+        '-crf', '32',  # Qualità ridotta per file più piccoli (23=alta, 32=media-bassa)
         '-preset', 'fast',  # Velocità encoding
-        '-acodec', 'aac',  # Audio codec
-        '-b:a', '96k',  # Bitrate audio ridotto (era 128k)
+        '-vf', 'scale=-2:720',  # Ridimensiona a 720p (da 1080p)
+        '-an',  # Rimuovi audio
         '-avoid_negative_ts', '1',  # Evita problemi con timestamp negativi
         '-y',  # Sovrascrivi se esiste
         output_path
