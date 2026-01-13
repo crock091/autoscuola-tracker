@@ -612,40 +612,30 @@ function App() {
     }
   };
 
-  // Carica dettagli guida passata
+  // Carica dettagli guida passata (usa stessa logica app allievo)
   const loadPastSessionDetails = async (sessionId) => {
     try {
-      // Usa RPC con conversione coordinate lato server
-      const gpsResponse = await fetch(
-        `${API_URL}/rpc/get_session_gps_with_coords`,
-        {
-          method: 'POST',
-          headers: supabaseHeaders,
-          body: JSON.stringify({ session_id_param: sessionId })
-        }
-      );
+      // Carica punti GPS usando la funzione RPC (stessa dell'allievo)
+      const gpsResponse = await fetch(`${API_URL}/rpc/get_gps_points`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({ p_session_id: sessionId })
+      });
       const gpsPoints = await gpsResponse.json();
       
-      // Rinomina ts -> timestamp per compatibilità
-      const gpsPointsFormatted = gpsPoints.map(p => ({ ...p, timestamp: p.ts }));
+      setPastSessionDetails({
+        gps_points: gpsPoints.map(p => ({ ...p, timestamp: p.ts }))
+      });
       
-      setPastSessionDetails({ gps_points: gpsPointsFormatted });
-      
-      // Usa RPC con conversione coordinate lato server per eventi
-      const eventsResponse = await fetch(
-        `${API_URL}/rpc/get_session_events_with_coords`,
-        {
-          method: 'POST',
-          headers: supabaseHeaders,
-          body: JSON.stringify({ session_id_param: sessionId })
-        }
-      );
+      // Carica eventi usando la funzione RPC (stessa dell'allievo)
+      const eventsResponse = await fetch(`${API_URL}/rpc/get_events`, {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({ p_session_id: sessionId })
+      });
       const events = await eventsResponse.json();
       
-      // Rinomina ts -> timestamp per compatibilità
-      const eventsFormatted = events.map(e => ({ ...e, timestamp: e.ts }));
-      
-      setPastEvents(eventsFormatted);
+      setPastEvents(events.map(e => ({ ...e, timestamp: e.ts })));
     } catch (error) {
       console.error('❌ Errore caricamento dettagli:', error);
     }
@@ -1006,18 +996,17 @@ function App() {
                   <div className="map-wrapper">
                     <MapContainer 
                       center={pastSessionDetails.gps_points && pastSessionDetails.gps_points.length > 0 ? [pastSessionDetails.gps_points[0].lat, pastSessionDetails.gps_points[0].lon] : [45.4642, 9.1900]}
-                      zoom={15} 
-                      style={{ height: '100%', width: '100%' }}
-                      key={selectedPastSession}>
+                      zoom={14}
+                      style={{ height: '100%', width: '100%' }}>
                       <MapController center={selectedEventLocation} zoom={17} />
                       <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; OpenStreetMap contributors'
                       />
                       {pastSessionDetails.gps_points && pastSessionDetails.gps_points.length > 0 && (
                         <Polyline 
                           positions={pastSessionDetails.gps_points.map(p => [p.lat, p.lon])}
-                          color="blue"
+                          color="#2563eb"
                           weight={4}
                         />
                       )}
