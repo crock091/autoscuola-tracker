@@ -65,7 +65,7 @@ function calculateSpeed(lat1, lon1, lat2, lon2, timeDiffMs) {
 }
 
 // ===== VALIDAZIONE DATI GPS =====
-function isValidGPS(position) {
+function isValidGPS(position, isFirstPoint = false) {
   const { latitude, longitude, accuracy } = position.coords;
   
   // Controlla coordinate valide
@@ -75,9 +75,11 @@ function isValidGPS(position) {
     return false;
   }
   
-  // Controlla accuratezza (rifiuta se > 50m)
-  if (accuracy && accuracy > 50) {
-    console.warn('⚠️ GPS accuracy troppo bassa:', accuracy, 'm');
+  // Accuracy progressiva: più permissiva all'inizio, poi più restrittiva
+  const maxAccuracy = isFirstPoint ? 500 : 150; // 500m per primi punti, 150m dopo
+  
+  if (accuracy && accuracy > maxAccuracy) {
+    console.warn('⚠️ GPS accuracy troppo bassa:', accuracy, 'm (max:', maxAccuracy, 'm)');
     return false;
   }
   
@@ -302,8 +304,9 @@ function App() {
       console.log('🌍 Avvio geolocalizzazione...');
       const id = navigator.geolocation.watchPosition(
         async (position) => {
-          // Validazione dati GPS
-          if (!isValidGPS(position)) {
+          // Validazione dati GPS (più permissiva per i primi punti)
+          const isFirst = !lastGPSPoint.current;
+          if (!isValidGPS(position, isFirst)) {
             console.warn('⚠️ Dati GPS non validi, salto questo punto');
             return;
           }
@@ -603,28 +606,54 @@ function App() {
   // Carica dettagli guida passata
   const loadPastSessionDetails = async (sessionId) => {
     try {
-      // Carica GPS points
-      const gpsResponse = await fetch(`${API_URL}/rpc/get_gps_points`, {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: JSON.stringify({ p_session_id: sessionId })
-      });
+      console.time('⏱️ Caricamento GPS points');
+      
+      // Usa RPC con conversione coordinate lato server
+      const gpsResponse = await fetch(
+        `${API_URL}/rpc/get_session_gps_with_coords`,
+        {
+          method: 'POST',
+          headers: supabaseHeaders,
+          body: JSON.stringify({ session_id_param: sessionId })
+        }
+      );
       const gpsPoints = await gpsResponse.json();
       
-      setPastSessionDetails({
-        gps_points: gpsPoints.map(p => ({ ...p, timestamp: p.ts }))
-      });
+      console.timeEnd('⏱️ Caricamento GPS points');
+      console.log(`📍 Caricati ${gpsPoints.length} punti GPS con coordinate`);
+      if (gpsPoints.length > 0) {
+        console.log('📍 Primo punto GPS:', gpsPoints[0]);
+      }
       
-      // Carica eventi con la RPC normale
-      const eventsResponse = await fetch(`${API_URL}/rpc/get_events`, {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: JSON.stringify({ p_session_id: sessionId })
-      });
+      // Rinomina ts -> timestamp per compatibilità
+      const gpsPointsFormatted = gpsPoints.map(p => ({ ...p, timestamp: p.ts }));
+      
+      setPastSessionDetails({ gps_points: gpsPointsFormatted });
+      
+      console.time('⏱️ Caricamento eventi');
+      // Usa RPC con conversione coordinate lato server per eventi
+      const eventsResponse = await fetch(
+        `${API_URL}/rpc/get_session_events_with_coords`,
+        {
+          method: 'POST',
+          headers: supabaseHeaders,
+          body: JSON.stringify({ session_id_param: sessionId })
+        }
+      );
       const events = await eventsResponse.json();
-      setPastEvents(events.map(e => ({ ...e, timestamp: e.ts })));
+      
+      console.timeEnd('⏱️ Caricamento eventi');
+      console.log(`🎯 Caricati ${events.length} eventi con coordinate`);
+      if (events.length > 0) {
+        console.log('🎯 Primo evento:', events[0]);
+      }
+      
+      // Rinomina ts -> timestamp per compatibilità
+      const eventsFormatted = events.map(e => ({ ...e, timestamp: e.ts }));
+      
+      setPastEvents(eventsFormatted);
     } catch (error) {
-      console.error('Errore caricamento dettagli:', error);
+      console.error('❌ Errore caricamento dettagli:', error);
     }
   };
 
