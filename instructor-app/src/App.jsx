@@ -142,6 +142,15 @@ function MapController({ center, zoom, position }) {
     } else if (position) {
       map.setView(position, map.getZoom());
     }
+    // Fix: ridimensiona mappa quando il container cambia (importante per mobile)
+    const resizeMap = () => {
+      map.invalidateSize();
+    };
+    
+    // Multipli tentativi per garantire rendering corretto su mobile
+    setTimeout(resizeMap, 100);
+    setTimeout(resizeMap, 300);
+    setTimeout(resizeMap, 500);
   }, [center, zoom, position, map]);
   
   return null;
