@@ -4,6 +4,86 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import './App.css';
 
+// ===== FILTRO KALMAN PER GPS =====
+class KalmanFilter {
+  constructor() {
+    this.variance = -1; // Varianza processo
+    this.minAccuracy = 1; // Accuratezza minima
+  }
+
+  filter(lat, lon, accuracy, timestamp) {
+    if (accuracy < this.minAccuracy) accuracy = this.minAccuracy;
+    if (this.variance < 0) {
+      // Prima misura
+      this.variance = accuracy * accuracy;
+      this.lat = lat;
+      this.lon = lon;
+      this.timestamp = timestamp;
+      return { lat, lon };
+    }
+
+    // Predizione
+    const timeInc = timestamp - this.timestamp;
+    if (timeInc > 0) {
+      this.variance += (timeInc * 0.001); // Process noise
+      this.timestamp = timestamp;
+    }
+
+    // Kalman gain
+    const K = this.variance / (this.variance + accuracy * accuracy);
+
+    // Update
+    this.lat += K * (lat - this.lat);
+    this.lon += K * (lon - this.lon);
+    this.variance = (1 - K) * this.variance;
+
+    return { lat: this.lat, lon: this.lon };
+  }
+
+  reset() {
+    this.variance = -1;
+  }
+}
+
+// ===== CALCOLO VELOCITÀ DA DISTANZA/TEMPO =====
+function calculateSpeed(lat1, lon1, lat2, lon2, timeDiffMs) {
+  // Formula Haversine per distanza in metri
+  const R = 6371000; // Raggio Terra in metri
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c; // metri
+
+  // Velocità = distanza / tempo (converti in km/h)
+  const timeInSeconds = timeDiffMs / 1000;
+  if (timeInSeconds <= 0) return 0;
+  const speedMps = distance / timeInSeconds;
+  return speedMps * 3.6; // Converti m/s a km/h
+}
+
+// ===== VALIDAZIONE DATI GPS =====
+function isValidGPS(position) {
+  const { latitude, longitude, accuracy } = position.coords;
+  
+  // Controlla coordinate valide
+  if (!latitude || !longitude || 
+      latitude < -90 || latitude > 90 || 
+      longitude < -180 || longitude > 180) {
+    return false;
+  }
+  
+  // Controlla accuratezza (rifiuta se > 50m)
+  if (accuracy && accuracy > 50) {
+    console.warn('⚠️ GPS accuracy troppo bassa:', accuracy, 'm');
+    return false;
+  }
+  
+  return true;
+}
+
 // Fix per icona marker default di Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -88,6 +168,9 @@ function App() {
   const lastSpeedCheckRef = useRef(null); // Ultima posizione per cui abbiamo controllato il limite
   const [videoModalOpen, setVideoModalOpen] = useState(false); // Modal video
   const [currentVideoUrl, setCurrentVideoUrl] = useState(null); // URL video corrente
+  const kalmanFilter = useRef(new KalmanFilter()); // Filtro Kalman per GPS
+  const lastGPSPoint = useRef(null); // Ultimo punto GPS per calcolo velocità
+  const speedHistory = useRef([]); // Storia velocità per media mobile
   
   // Funzione per ottenere il limite di velocità dalla strada (Overpass API)
   const fetchSpeedLimit = async (lat, lon) => {
@@ -219,17 +302,62 @@ function App() {
       console.log('🌍 Avvio geolocalizzazione...');
       const id = navigator.geolocation.watchPosition(
         async (position) => {
-          console.log('📍 Posizione ricevuta:', position.coords.latitude, position.coords.longitude);
-          const pos = [position.coords.latitude, position.coords.longitude];
+          // Validazione dati GPS
+          if (!isValidGPS(position)) {
+            console.warn('⚠️ Dati GPS non validi, salto questo punto');
+            return;
+          }
+
+          console.log('📍 Posizione ricevuta:', position.coords.latitude, position.coords.longitude, 
+                      'Accuracy:', position.coords.accuracy, 'm');
+          
+          // Applica filtro Kalman
+          const timestamp = position.timestamp || Date.now();
+          const filtered = kalmanFilter.current.filter(
+            position.coords.latitude,
+            position.coords.longitude,
+            position.coords.accuracy || 10,
+            timestamp
+          );
+          
+          const pos = [filtered.lat, filtered.lon];
           setCurrentPosition(pos);
           setRoute(prev => [...prev, pos]);
           
-          // Aggiorna velocità (converti da m/s a km/h)
-          const speedKmh = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0;
+          // Calcolo velocità intelligente
+          let speedKmh = 0;
+          if (lastGPSPoint.current) {
+            const timeDiff = timestamp - lastGPSPoint.current.timestamp;
+            if (timeDiff > 0) {
+              speedKmh = calculateSpeed(
+                lastGPSPoint.current.lat,
+                lastGPSPoint.current.lon,
+                filtered.lat,
+                filtered.lon,
+                timeDiff
+              );
+              
+              // Limita velocità massima (ignora valori anomali > 200 km/h)
+              if (speedKmh > 200) {
+                console.warn('⚠️ Velocità anomala rilevata:', speedKmh, 'km/h');
+                speedKmh = lastGPSPoint.current.speed || 0;
+              }
+              
+              // Media mobile su ultimi 3 punti per smoothing
+              speedHistory.current.push(speedKmh);
+              if (speedHistory.current.length > 3) {
+                speedHistory.current.shift();
+              }
+              const avgSpeed = speedHistory.current.reduce((a, b) => a + b, 0) / speedHistory.current.length;
+              speedKmh = Math.round(avgSpeed);
+            }
+          }
+          
           setCurrentSpeed(speedKmh);
+          lastGPSPoint.current = { lat: filtered.lat, lon: filtered.lon, timestamp, speed: speedKmh };
           
           // Rileva limite di velocità della strada
-          fetchSpeedLimit(position.coords.latitude, position.coords.longitude);
+          fetchSpeedLimit(filtered.lat, filtered.lon);
           
           // Invia punto GPS al backend
           if (sessionIdRef.current) {
@@ -241,7 +369,7 @@ function App() {
                 body: JSON.stringify({
                   session_id: sessionIdRef.current,
                   location: `POINT(${pos[1]} ${pos[0]})`,
-                  velocita: position.coords.speed || 0,
+                  velocita: speedKmh / 3.6, // Salva in m/s
                   timestamp: new Date().toISOString()
                 })
               });
@@ -289,6 +417,12 @@ function App() {
   const startSession = async () => {
     try {
       console.log('Avvio sessione...');
+      
+      // Reset filtro Kalman per nuova sessione
+      kalmanFilter.current.reset();
+      lastGPSPoint.current = null;
+      speedHistory.current = [];
+      
       const response = await fetch(`${API_URL}/sessions`, {
         method: 'POST',
         headers: supabaseHeaders,
