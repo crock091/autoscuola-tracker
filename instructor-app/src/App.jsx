@@ -606,8 +606,6 @@ function App() {
   // Carica dettagli guida passata
   const loadPastSessionDetails = async (sessionId) => {
     try {
-      console.time('⏱️ Caricamento GPS points');
-      
       // Usa RPC con conversione coordinate lato server
       const gpsResponse = await fetch(
         `${API_URL}/rpc/get_session_gps_with_coords`,
@@ -619,18 +617,11 @@ function App() {
       );
       const gpsPoints = await gpsResponse.json();
       
-      console.timeEnd('⏱️ Caricamento GPS points');
-      console.log(`📍 Caricati ${gpsPoints.length} punti GPS con coordinate`);
-      if (gpsPoints.length > 0) {
-        console.log('📍 Primo punto GPS:', gpsPoints[0]);
-      }
-      
       // Rinomina ts -> timestamp per compatibilità
       const gpsPointsFormatted = gpsPoints.map(p => ({ ...p, timestamp: p.ts }));
       
       setPastSessionDetails({ gps_points: gpsPointsFormatted });
       
-      console.time('⏱️ Caricamento eventi');
       // Usa RPC con conversione coordinate lato server per eventi
       const eventsResponse = await fetch(
         `${API_URL}/rpc/get_session_events_with_coords`,
@@ -641,12 +632,6 @@ function App() {
         }
       );
       const events = await eventsResponse.json();
-      
-      console.timeEnd('⏱️ Caricamento eventi');
-      console.log(`🎯 Caricati ${events.length} eventi con coordinate`);
-      if (events.length > 0) {
-        console.log('🎯 Primo evento:', events[0]);
-      }
       
       // Rinomina ts -> timestamp per compatibilità
       const eventsFormatted = events.map(e => ({ ...e, timestamp: e.ts }));
